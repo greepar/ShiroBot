@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <PublishReadyToRun>true</PublishReadyToRun>
+
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <SelfContained>false</SelfContained>
+        <PublishSingleFile>true</PublishSingleFile>
+        <PublishAot>false</PublishAot>
+
+        <DebuggerSupport>false</DebuggerSupport>
+        <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+        <InvariantGlobalization>true</InvariantGlobalization>
+<!--        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>-->
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+        <TieredCompilation>true</TieredCompilation>
+        <TieredPGO>true</TieredPGO>
+
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Milky.Net.Model" Version="3.0.0" />
+        <PackageReference Include="Spectre.Console" Version="0.54.1-alpha.0.36" />
+        <PackageReference Include="System.CommandLine" Version="2.0.2" />
+        <PackageReference Include="Tomlyn" Version="0.20.0" />
+        <ProjectReference Include="..\Tomlyn.SourceGeneration\Tomlyn.SourceGeneration.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj" />
+    </ItemGroup>
+
+
+</Project>

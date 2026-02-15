@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../QBotSharp-SDK/QBotSharp.MilkyAdapter/QBotSharp.MilkyAdapter.csproj" />
+  <Project Path="../QBotSharp-SDK/QBotSharp.PluginDemo/QBotSharp.PluginDemo.csproj" />
+  <Project Path="QBotSharp.SDK/QBotSharp.SDK.csproj" />
+  <Project Path="QBotSharp/QBotSharp.csproj" />
+  <Project Path="Tomlyn.SourceGeneration/Tomlyn.SourceGeneration.csproj" />
+</Solution>
