@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\QBotSharp\QBotSharp.SDK\QBotSharp.SDK.csproj"/>
+        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44" />
+        <PackageReference Include="EmbedIO" Version="3.5.2" />
+        <PackageReference Include="PuppeteerSharp" Version="20.2.6"/>
+    </ItemGroup>
+
+
+    <Target Name="RepackPlugin" AfterTargets="Publish" Condition="'$(Configuration)'=='Release'">
+        <MakeDir Directories="$(PublishDir)plugins" />
+
+        <ItemGroup>
+            <!-- 主程序集 -->
+            <RepackInput Include="$(PublishDir)QBotSharp.PluginDemo.dll" />
+
+            <!-- 把 publish 目录下其它托管 dll 一起并入（排除框架 dll） -->
+            <RepackInput Include="$(PublishDir)*.dll"
+                         Exclude="$(PublishDir)QBotSharp.PluginDemo.dll;
+                          $(PublishDir)QBotSharp.SDK.dll;
+                          $(PublishDir)System*.dll;
+                          $(PublishDir)mscorlib.dll;
+                          $(PublishDir)netstandard.dll" />
+        </ItemGroup>
+
+        <Message Importance="high" Text="ILRepack inputs: @(RepackInput, ' | ')" />
+
+        <ILRepack
+                TargetKind="Dll"
+                OutputFile="$(PublishDir)plugins\QBotSharp.PluginDemo.dll"
+                InputAssemblies="@(RepackInput)"
+                Internalize="true"
+                Parallel="true" />
+    </Target>
+    
+    
+</Project>
