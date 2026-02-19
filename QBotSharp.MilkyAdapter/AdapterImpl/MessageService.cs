@@ -9,18 +9,21 @@ namespace QBotSharp.MilkyAdapter.AdapterImpl;
 public class MessageService : IMessageService
 {
     private static MilkyClient Milky => MilkyClientManager.Instance;
-    public async Task<SendPrivateMessageResponse> SendPrivateMessageAsync(SendPrivateMessageRequest request)
+    public async Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long uid,OutgoingSegment[] segments)
     {
-        return await Milky.Message.SendPrivateMessageAsync(request);
+        var input = new SendPrivateMessageRequest(uid,segments);
+        return await Milky.Message.SendPrivateMessageAsync(input);
     }
 
-    public async Task<SendGroupMessageResponse> SendGroupMessageAsync(SendGroupMessageRequest request)
+    public async Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId,OutgoingSegment[] segments)
     {
-        return await Milky.Message.SendGroupMessageAsync(request);
+        var input = new SendGroupMessageRequest(groupId,segments);
+        return await Milky.Message.SendGroupMessageAsync(input);
     }
 
-    public async Task RecallPrivateMessageAsync(RecallPrivateMessageRequest request)
+    public async Task RecallPrivateMessageAsync(long userId,long messageSeq)
     {
+        var request = new RecallPrivateMessageRequest(userId, messageSeq);
         await Milky.Message.RecallPrivateMessageAsync(request);
     }
 

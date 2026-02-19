@@ -91,8 +91,6 @@ public static class Program
                 new TextOutgoingSegment("hello")
             };
             var request = new SendPrivateMessageRequest(1034028486, segments);
-            //测试发送私聊消息
-            await adapter.Message.SendPrivateMessageAsync(request);
 
             //加载Plugin
             var pluginRoot = Path.Combine(AppContext.BaseDirectory, "plugins");

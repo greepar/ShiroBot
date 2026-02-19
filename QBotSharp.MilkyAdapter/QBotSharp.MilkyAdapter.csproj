@@ -28,7 +28,7 @@
 <!--                Include="Milky.Net.Client"-->
 <!--                Version="0.0.1-preview.61" PrivateAssets="all"/>-->
 
-        <ProjectReference Include="..\..\QBotSharp\QBotSharp.SDK\QBotSharp.SDK.csproj" PrivateAssets="runtime"/>
+        <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj" PrivateAssets="runtime"/>
 
         <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all"/>
         <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all"/>

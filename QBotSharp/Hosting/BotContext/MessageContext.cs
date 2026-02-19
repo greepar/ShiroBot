@@ -7,24 +7,18 @@ namespace QBotSharp.Hosting.BotContext;
 
 public class MessageContext(IMessageService message) : IMessageContext
 {
-    public async Task<SendPrivateMessageResponse> SendPrivateMessageAsync(SendPrivateMessageRequest request)
+    public Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long uid, OutgoingSegment[] segments)
     {
-        ConsoleHelper.Log($"[Plugin -> Message] Sending private message to {request.UserId}");
-        var response = await message.SendPrivateMessageAsync(request);
-        // ConsoleHelper.Info($"[Plugin <- Message] Response: {response?.}");
-        return response;
+        return message.SendPrivateMessageAsync(uid, segments);
     }
 
-    public async Task<SendGroupMessageResponse> SendGroupMessageAsync(SendGroupMessageRequest request)
+    public Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId, OutgoingSegment[] segments)
     {
-        ConsoleHelper.Log($"[Plugin -> Message] Sending group message to {request.GroupId}");
-        var response = await message.SendGroupMessageAsync(request);
-        // ConsoleHelper.Info($"[Plugin <- Message] Response: {response?.MessageId}");
-        return response;
+        return message.SendGroupMessageAsync(groupId, segments);
     }
 
-    public Task RecallPrivateMessageAsync(RecallPrivateMessageRequest request) =>
-        message.RecallPrivateMessageAsync(request);
+    public Task RecallPrivateMessageAsync(long userId,long messageSeq) =>
+        message.RecallPrivateMessageAsync(userId, messageSeq);
 
     public Task RecallGroupMessageAsync(RecallGroupMessageRequest request) =>
         message.RecallGroupMessageAsync(request);

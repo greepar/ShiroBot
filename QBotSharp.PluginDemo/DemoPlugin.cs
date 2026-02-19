@@ -34,10 +34,9 @@ public class DemoPlugin : IBotPlugin
         {
             new TextOutgoingSegment($"hello from plugin:{Name}")
         };
-        var request = new SendPrivateMessageRequest(1034028486, segments);
         //测试发送私聊消息
         Console.WriteLine("开始获取群文件...");
-        await context.Message.SendPrivateMessageAsync(request);
+        await context.Message.SendPrivateMessageAsync(1034028486, segments);
         var groupFiles = await context.File.GetGroupFilesAsync(new GetGroupFilesRequest(887098745));
         var groupFileList = groupFiles.Files;
         var groupFileNames = groupFileList.Select(f => f.FileName).ToList();
@@ -84,7 +83,7 @@ public class DemoPlugin : IBotPlugin
                 ]);
 
 
-                await page.GoToAsync("https://monitor.oeo.one/instance/52d7c676-a120-4de3-980a-85a82a2f2ceb");
+                await page.GoToAsync("https://mo.qwq.lu/instance/52d7c676-a120-4de3-980a-85a82a2f2ceb");
                 await page.WaitForSelectorAsync(
                     "#root > div > div > main > div > div.rt-Flex.rt-r-fd-column.rt-r-ai-center.rt-r-gap-4.w-full.max-w-screen > div.w-full.overflow-x-auto.px-2 > div > div > button:nth-child(4) > span.rt-SegmentedControlItemLabel");
                 await page.ClickAsync(
@@ -114,8 +113,7 @@ public class DemoPlugin : IBotPlugin
                 {
                     new ImageOutgoingSegment(new MilkyUri($"base64://{pic}"), "[图片]")
                 };
-                var finRequest = new SendGroupMessageRequest(message.Group.GroupId, finSegments);
-                await context.Message.SendGroupMessageAsync(finRequest);
+                var response = context.Message.SendGroupMessageAsync(message.Group.GroupId, finSegments);
             }
         };
     }
