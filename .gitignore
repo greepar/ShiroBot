@@ -3,3 +3,9 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+.idea/
+META-INF/
+*.DotSettings.user
+artifacts/
+MilkyModelGenerator.Net/output/
+MilkyModelGenerator.Net/QBotSharp.Model/
