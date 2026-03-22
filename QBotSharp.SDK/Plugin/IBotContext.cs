@@ -8,4 +8,5 @@ public interface IBotContext
     public IMessageContext Message { get;  }  
     public ISystemContext System { get; }
     public IEventContext Event { get; }
+    public IPluginConfigContext Config { get; }
 }

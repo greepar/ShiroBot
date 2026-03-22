@@ -1,6 +1,6 @@
 ﻿using QBotSharp.Utils;
 
-namespace QBotSharp;
+namespace QBotSharp.Hosting;
 
 public class BotHostBuilder
 {

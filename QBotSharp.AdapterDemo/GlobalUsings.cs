@@ -1,0 +1,11 @@
+global using QBotSharp.Model.Common;
+global using QBotSharp.Model.File.Requests;
+global using QBotSharp.Model.File.Responses;
+global using QBotSharp.Model.Friend.Requests;
+global using QBotSharp.Model.Friend.Responses;
+global using QBotSharp.Model.Group.Requests;
+global using QBotSharp.Model.Group.Responses;
+global using QBotSharp.Model.Message.Requests;
+global using QBotSharp.Model.Message.Responses;
+global using QBotSharp.Model.System.Requests;
+global using QBotSharp.Model.System.Responses;

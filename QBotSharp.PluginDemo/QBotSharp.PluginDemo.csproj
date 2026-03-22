@@ -5,13 +5,18 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <HostPluginDir>..\QBotSharp\bin\Debug\$(TargetFramework)\plugins\$(AssemblyName)\</HostPluginDir>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugAll;Release</Configurations>
     </PropertyGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj"/>
-        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44" />
+        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="EmbedIO" Version="3.5.2" />
-        <PackageReference Include="PuppeteerSharp" Version="20.2.6"/>
+        <PackageReference Include="PuppeteerSharp" Version="24.39.0" />
     </ItemGroup>
 
 
@@ -39,6 +44,21 @@
                 InputAssemblies="@(RepackInput)"
                 Internalize="true"
                 Parallel="true" />
+    </Target>
+
+    <Target Name="CopyPluginToHost"
+            AfterTargets="Build"
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'">
+        <MakeDir Directories="$(HostPluginDir)" />
+
+        <ItemGroup>
+            <PluginDebugOutput Include="$(TargetDir)**\*"
+                               Exclude="$(TargetDir)QBotSharp.SDK.dll;$(TargetDir)QBotSharp.SDK.pdb" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(PluginDebugOutput)"
+              DestinationFiles="@(PluginDebugOutput->'$(HostPluginDir)%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true" />
     </Target>
     
     

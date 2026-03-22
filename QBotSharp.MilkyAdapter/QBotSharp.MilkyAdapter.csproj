@@ -6,36 +6,36 @@
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <RootNamespace>QBotSharp.MilkyAdapter</RootNamespace>
+        <HostAdapterDir>..\QBotSharp\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
     </PropertyGroup>
 
     <ItemGroup>
-<!--        <PackageReference Include="Milky.Net.Model.V2" Version="0.0.1-preview.61" PrivateAssets="all">-->
-<!--            <Aliases>MilkyV2</Aliases>-->
-<!--        </PackageReference>-->
-
-<!--        <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime">-->
-<!--            <Aliases>MilkyV3</Aliases>-->
-<!--        </PackageReference>-->
-
-        <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime">
-<!--            <Aliases>MilkyV3</Aliases>-->
-        </PackageReference>
-
+        
+        <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime" />
         <PackageReference Include="Milky.Net.Client" Version="3.0.0" PrivateAssets="runtime" />
 
-
-<!--        <PackageReference-->
-<!--                Include="Milky.Net.Client"-->
-<!--                Version="0.0.1-preview.61" PrivateAssets="all"/>-->
-
         <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj" PrivateAssets="runtime"/>
+        <ProjectReference Include="..\QBotSharp.Model\QBotSharp.Model.csproj" PrivateAssets="runtime"/>
 
         <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all"/>
         <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all"/>
-<!--        <ProjectReference Include="..\Milky.Net\src\Milky.Net.Client\Milky.Net.Client.csproj" PrivateAssets="all"/>-->
-
-
 
     </ItemGroup>
+
+    <Target Name="CopyAdapterToHost"
+            AfterTargets="Build"
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <MakeDir Directories="$(HostAdapterDir)" />
+
+        <ItemGroup>
+            <AdapterDebugOutput Include="$(TargetDir)**\*"
+                                Exclude="$(TargetDir)QBotSharp.SDK.dll;$(TargetDir)QBotSharp.SDK.pdb;$(TargetDir)QBotSharp.Model.dll;$(TargetDir)QBotSharp.Model.pdb" />
+        </ItemGroup>
+
+        <Copy SourceFiles="@(AdapterDebugOutput)"
+              DestinationFiles="@(AdapterDebugOutput->'$(HostAdapterDir)%(RecursiveDir)%(Filename)%(Extension)')"
+              SkipUnchangedFiles="true" />
+    </Target>
     
 </Project>

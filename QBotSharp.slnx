@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="QBotSharp.Model/QBotSharp.Model.csproj" />
+  <Project Path="QBotSharp.AdapterDemo/QBotSharp.AdapterDemo.csproj" />
   <Project Path="QBotSharp.MilkyAdapter/QBotSharp.MilkyAdapter.csproj" />
   <Project Path="QBotSharp.PluginDemo/QBotSharp.PluginDemo.csproj" />
   <Project Path="QBotSharp.SDK/QBotSharp.SDK.csproj" />

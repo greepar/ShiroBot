@@ -1,12 +1,25 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <PublishReadyToRun>true</PublishReadyToRun>
-
         <OutputType>Exe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <OutputPath>bin\Debug\</OutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ManagedPluginDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\plugins\QBotSharp.PluginDemo</ManagedPluginDebugDir>
+        <ManagedAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\QBotSharp.AdapterDemo</ManagedAdapterDebugDir>
+        <ManagedMilkyAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\QBotSharp.MilkyAdapter</ManagedMilkyAdapterDebugDir>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <PublishReadyToRun>true</PublishReadyToRun>
         <SelfContained>false</SelfContained>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishAot>false</PublishAot>
@@ -22,10 +35,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Milky.Net.Model" Version="3.0.0" />
-        <PackageReference Include="Spectre.Console" Version="0.54.1-alpha.0.36" />
-        <PackageReference Include="System.CommandLine" Version="2.0.2" />
-        <PackageReference Include="Tomlyn" Version="0.20.0" />
+        <PackageReference Include="Spectre.Console" Version="0.54.1-alpha.0.80" />
+        <PackageReference Include="System.CommandLine" Version="3.0.0-preview.2.26159.112" />
+        <PackageReference Include="Tomlyn" Version="1.2.0" />
         <ProjectReference Include="..\Tomlyn.SourceGeneration\Tomlyn.SourceGeneration.csproj"
                           OutputItemType="Analyzer"
                           ReferenceOutputAssembly="false" />
@@ -35,5 +47,41 @@
         <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\QBotSharp.AdapterDemo\QBotSharp.AdapterDemo.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\QBotSharp.MilkyAdapter\QBotSharp.MilkyAdapter.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\QBotSharp.PluginDemo\QBotSharp.PluginDemo.csproj"
+                          ReferenceOutputAssembly="false"
+                          PrivateAssets="all" />
+    </ItemGroup>
+
+    <Target Name="CopyManagedDebugArtifacts"
+            AfterTargets="Build"
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <MSBuild Projects="..\QBotSharp.PluginDemo\QBotSharp.PluginDemo.csproj"
+                 Targets="CopyPluginToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'" />
+
+        <MSBuild Projects="..\QBotSharp.AdapterDemo\QBotSharp.AdapterDemo.csproj"
+                 Targets="CopyAdapterToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'" />
+
+        <MSBuild Projects="..\QBotSharp.MilkyAdapter\QBotSharp.MilkyAdapter.csproj"
+                 Targets="CopyAdapterToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'" />
+    </Target>
 
 </Project>

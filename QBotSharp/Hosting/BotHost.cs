@@ -1,14 +1,9 @@
-﻿using CH = QBotSharp.Utils.ConsoleHelper;
+﻿using CH = QBotSharp.Core.ConsoleHelper;
 
-namespace QBotSharp;
+namespace QBotSharp.Hosting;
 
 public class BotHost
 {
-    public BotHost()
-    {
-        
-    }
-    
     public async Task RunAsync()
     {
         

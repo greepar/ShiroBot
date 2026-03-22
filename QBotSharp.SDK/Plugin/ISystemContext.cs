@@ -1,5 +1,4 @@
 using QBotSharp.SDK.Adapter;
-using Milky.Net.Model;
 
 namespace QBotSharp.SDK.Plugin;
 
