@@ -1,4 +1,3 @@
-using MModel = Milky.Net.Model;
 using QBotSharp.MilkyAdapter.AdapterImpl;
 using QBotSharp.MilkyAdapter.Milky;
 using QBotSharp.SDK;
@@ -45,9 +44,7 @@ public class MilkyAdapter : IBotAdapter
 
         MilkyClientManager.Initialize(config.BaseUrl, config.AccessToken, Logger);
         var milky = MilkyClientManager.Instance;
-
         Logger.Info("开始连接 Milky...");
-
         var loginInfo = await milky.System.GetLoginInfoAsync();
         var result = await milky.System.GetImplInfoAsync();
         Logger.Success($"Milky 登录信息获取成功 - Nickname: {loginInfo.Nickname},Milky Impl: {result.ImplName} {result.ImplVersion}");
@@ -87,22 +84,6 @@ public class MilkyAdapter : IBotAdapter
             }
         });
 
-        var segments =
-            new MModel.OutgoingSegment[]
-            {
-                new MModel.TextOutgoingSegment("hello")
-            };
-        var request = new MModel.SendPrivateMessageRequest(1034028486, segments);
-
-        try
-        {
-            await milky.Message.SendPrivateMessageAsync(request);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error($"发送测试消息失败: {ex.Message}");
-            throw;
-        }
     }
 
     public Task StopAsync()

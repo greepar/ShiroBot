@@ -42,11 +42,17 @@ public static class Program
             Description = "指定配置文件路径"
         };
 
+        var noConsoleOption = new Option<bool>("--no-console")
+        {
+            Description = "禁用控制台交互输入"
+        };
+
         var rootCommand = new RootCommand("QBotSharp 主程序")
         {
             adapterOption,
             pluginOption,
-            configOption
+            configOption,
+            noConsoleOption
         };
 
         var parserResult = rootCommand.Parse(args);
@@ -69,6 +75,7 @@ public static class Program
 
             var configuredProtocol = coreConfig.Protocol?.Trim();
             var configuredAdapterPath = NormalizeOptionalPath(parserResult.GetValue(adapterOption));
+            var disableConsoleFromArg = parserResult.GetValue(noConsoleOption);
 
             CH.Info("配置加载完成" + (string.IsNullOrWhiteSpace(configuredProtocol)
                 ? "，未配置协议，将自动选择 adapters 中的适配器"
@@ -82,7 +89,10 @@ public static class Program
             {
                 CH.Warning("未找到适配器文件: " + adapterPath);
                 CH.Warning("请确认 adapters 目录下存在对应的适配器文件，或在 config.toml 中配置 protocol...");
-                Console.ReadKey();
+                if (CanReadInteractiveKey())
+                {
+                    Console.ReadKey();
+                }
                 return;
             }
 
@@ -161,8 +171,31 @@ public static class Program
                 Environment.UserInteractive &&
                 !Console.IsInputRedirected &&
                 !Console.IsOutputRedirected;
+            var enableConsoleInput = hasConsole && !disableConsoleFromArg && !coreConfig.DisableConsoleInput;
 
-            if (hasConsole)
+            if (!enableConsoleInput)
+            {
+                var reasons = new List<string>();
+
+                if (!hasConsole)
+                {
+                    reasons.Add("检测到非交互终端");
+                }
+
+                if (disableConsoleFromArg)
+                {
+                    reasons.Add("命令行参数 --no-console 已启用");
+                }
+
+                if (coreConfig.DisableConsoleInput)
+                {
+                    reasons.Add("配置项 disable_console_input = true");
+                }
+
+                CH.Info($"已禁用控制台命令输入: {string.Join("，", reasons)}");
+            }
+
+            if (enableConsoleInput)
             {
                 while (true)
                 {
@@ -235,7 +268,10 @@ public static class Program
         {
             CH.Error("程序启动失败: " + ex.Message);
             CH.Warning("按任意键退出...");
-            Console.ReadKey();
+            if (CanReadInteractiveKey())
+            {
+                Console.ReadKey();
+            }
         }
         finally
         {
@@ -273,6 +309,13 @@ public static class Program
 
             adapterLoader?.Unload();
         }
+    }
+
+    private static bool CanReadInteractiveKey()
+    {
+        return Environment.UserInteractive &&
+               !Console.IsInputRedirected &&
+               !Console.IsOutputRedirected;
     }
 
     private static string ResolveConfiguredAdapterPath(string adapterRoot, string? protocol, string? commandLineAdapterPath)

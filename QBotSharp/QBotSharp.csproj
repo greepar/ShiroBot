@@ -19,7 +19,7 @@
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)'=='Release'">
-        <PublishReadyToRun>true</PublishReadyToRun>
+        <PublishReadyToRun>false</PublishReadyToRun>
         <SelfContained>false</SelfContained>
         <PublishSingleFile>true</PublishSingleFile>
         <PublishAot>false</PublishAot>

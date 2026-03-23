@@ -1,4 +1,5 @@
 using System.Text;
+using System.Runtime.Versioning;
 
 namespace QBotSharp.Core;
 
@@ -13,6 +14,7 @@ public static class ConsoleHelper
     private static IReadOnlyList<ConsoleCommandOption>? _completionOptions;
     private static bool _isEnabled = true;
     private static bool _isReadingInput;
+    private static bool _isFallbackInput;
     private static string? _activePrompt;
     private static int _cursorIndex;
     private static int _historyIndex;
@@ -51,6 +53,11 @@ public static class ConsoleHelper
 
     public static string ReadPrompt(string prompt, IReadOnlyList<ConsoleCommandOption>? completions = null)
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            return ReadPromptFallback(prompt);
+        }
+
         lock (OutputLock)
         {
             _completionOptions = completions;
@@ -170,6 +177,29 @@ public static class ConsoleHelper
         }
     }
 
+    private static string ReadPromptFallback(string prompt)
+    {
+        lock (OutputLock)
+        {
+            _isFallbackInput = true;
+            Console.ForegroundColor = ConsoleColor.Gray;
+            Console.Write(prompt);
+            Console.ResetColor();
+        }
+
+        try
+        {
+            return Console.ReadLine() ?? string.Empty;
+        }
+        finally
+        {
+            lock (OutputLock)
+            {
+                _isFallbackInput = false;
+            }
+        }
+    }
+
     private static void NavigateHistory(int direction)
     {
         if (History.Count == 0)
@@ -267,6 +297,11 @@ public static class ConsoleHelper
 
         lock (OutputLock)
         {
+            if (_isFallbackInput)
+            {
+                Console.WriteLine();
+            }
+
             if (_isReadingInput)
             {
                 ClearOverlayUnsafe();
@@ -384,6 +419,7 @@ public static class ConsoleHelper
         SetCursorPositionSafe(left, _inputTop);
     }
 
+    [SupportedOSPlatform("windows")]
     private static void ScrollViewportUnsafe(int delta)
     {
         try

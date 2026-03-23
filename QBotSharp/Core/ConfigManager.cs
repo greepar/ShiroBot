@@ -8,6 +8,7 @@ public class CoreConfig
 {
     public string? Protocol { get; set; }
     public bool EnableLog { get; set; } = true;
+    public bool DisableConsoleInput { get; set; }
     public PluginRouteConfig PluginRoutes { get; set; } = new();
 }
 
@@ -46,6 +47,7 @@ public class ConfigManager
                 var tomlString =
                     "protocol = \"\"" + Environment.NewLine +
                     "enable_log = true" + Environment.NewLine +
+                    "disable_console_input = false" + Environment.NewLine +
                     Environment.NewLine +
                     "[plugin_routes.default]" + Environment.NewLine +
                     "mode = \"blacklist\"" + Environment.NewLine +

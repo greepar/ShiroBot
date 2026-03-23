@@ -12,16 +12,50 @@
 
     <ItemGroup>
         
+        <PackageReference Include="Milky.Net.Client" Version="3.0.0" />
+        
         <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime" />
-        <PackageReference Include="Milky.Net.Client" Version="3.0.0" PrivateAssets="runtime" />
 
         <ProjectReference Include="..\QBotSharp.SDK\QBotSharp.SDK.csproj" PrivateAssets="runtime"/>
         <ProjectReference Include="..\QBotSharp.Model\QBotSharp.Model.csproj" PrivateAssets="runtime"/>
 
-        <PackageReference Include="Costura.Fody" Version="6.0.0" PrivateAssets="all"/>
-        <PackageReference Include="Fody" Version="6.9.3" PrivateAssets="all"/>
+        <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
 
     </ItemGroup>
+
+    <Target Name="RepackAdapter" AfterTargets="Publish" Condition="'$(Configuration)'=='Release'">
+        <PropertyGroup>
+            <MergedAdapterFile>$(PublishDir)$(AssemblyName).merged.dll</MergedAdapterFile>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <RepackInput Include="$(PublishDir)$(AssemblyName).dll" />
+            <RepackDependency Include="$(PublishDir)*.dll"
+                              Exclude="$(PublishDir)$(AssemblyName).dll;
+                                       $(PublishDir)QBotSharp.SDK.dll;
+                                       $(PublishDir)QBotSharp.Model.dll;
+                                       $(PublishDir)System*.dll;
+                                       $(PublishDir)Microsoft*.dll;
+                                       $(PublishDir)mscorlib.dll;
+                                       $(PublishDir)netstandard.dll" />
+            <RepackInput Include="@(RepackDependency)" />
+        </ItemGroup>
+
+        <ILRepack
+                TargetKind="Dll"
+                OutputFile="$(MergedAdapterFile)"
+                InputAssemblies="@(RepackInput)"
+                Internalize="true"
+                Parallel="true"
+                DebugInfo="true" />
+
+        <Copy SourceFiles="$(MergedAdapterFile)" DestinationFiles="$(PublishDir)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
+        <Delete Files="$(MergedAdapterFile)" />
+        <Delete Files="@(RepackDependency)" />
+    </Target>
 
     <Target Name="CopyAdapterToHost"
             AfterTargets="Build"
