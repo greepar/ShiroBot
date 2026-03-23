@@ -14,7 +14,6 @@ public static class ConsoleHelper
     private static IReadOnlyList<ConsoleCommandOption>? _completionOptions;
     private static bool _isEnabled = true;
     private static bool _isReadingInput;
-    private static bool _isFallbackInput;
     private static string? _activePrompt;
     private static int _cursorIndex;
     private static int _historyIndex;
@@ -53,11 +52,6 @@ public static class ConsoleHelper
 
     public static string ReadPrompt(string prompt, IReadOnlyList<ConsoleCommandOption>? completions = null)
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return ReadPromptFallback(prompt);
-        }
-
         lock (OutputLock)
         {
             _completionOptions = completions;
@@ -74,17 +68,40 @@ public static class ConsoleHelper
 
         while (true)
         {
-            var key = Console.ReadKey(intercept: true);
+            ConsoleKeyInfo key;
+            try
+            {
+                key = Console.ReadKey(intercept: true);
+            }
+            catch
+            {
+                lock (OutputLock)
+                {
+                    _isReadingInput = false;
+                    _activePrompt = null;
+                    InputBuffer.Clear();
+                    _cursorIndex = 0;
+                    _inlineCompletionSuffix = string.Empty;
+                }
+
+                return ReadPromptFallback(prompt, completions);
+            }
 
             lock (OutputLock)
             {
                 switch (key.Key)
                 {
                     case ConsoleKey.PageUp:
-                        ScrollViewportUnsafe(-1);
+                        if (OperatingSystem.IsWindows())
+                        {
+                            ScrollViewportUnsafe(-1);
+                        }
                         break;
                     case ConsoleKey.PageDown:
-                        ScrollViewportUnsafe(1);
+                        if (OperatingSystem.IsWindows())
+                        {
+                            ScrollViewportUnsafe(1);
+                        }
                         break;
                     case ConsoleKey.Escape:
                         if (!string.IsNullOrEmpty(_inlineCompletionSuffix))
@@ -177,27 +194,27 @@ public static class ConsoleHelper
         }
     }
 
-    private static string ReadPromptFallback(string prompt)
+    private static string ReadPromptFallback(string prompt, IReadOnlyList<ConsoleCommandOption>? completions)
     {
         lock (OutputLock)
         {
-            _isFallbackInput = true;
+            _completionOptions = completions;
             Console.ForegroundColor = ConsoleColor.Gray;
             Console.Write(prompt);
             Console.ResetColor();
         }
 
-        try
+        var input = Console.ReadLine() ?? string.Empty;
+
+        if (!string.IsNullOrWhiteSpace(input) &&
+            (History.Count == 0 || !string.Equals(History[^1], input, StringComparison.Ordinal)))
         {
-            return Console.ReadLine() ?? string.Empty;
+            History.Add(input);
         }
-        finally
-        {
-            lock (OutputLock)
-            {
-                _isFallbackInput = false;
-            }
-        }
+
+        _historyIndex = History.Count;
+        _historyDraft = string.Empty;
+        return input;
     }
 
     private static void NavigateHistory(int direction)
@@ -297,11 +314,6 @@ public static class ConsoleHelper
 
         lock (OutputLock)
         {
-            if (_isFallbackInput)
-            {
-                Console.WriteLine();
-            }
-
             if (_isReadingInput)
             {
                 ClearOverlayUnsafe();

@@ -1,6 +1,7 @@
 using System.CommandLine;
 using System.Diagnostics;
 using System.Text;
+using QBotSharp.Core;
 using QBotSharp.Hosting;
 using QBotSharp.Hosting.Context;
 using QBotSharp.SDK;

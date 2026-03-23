@@ -1,40 +1,46 @@
-﻿using Tomlyn;
+using System.Text.Json;
+using Tomlyn;
 using CH = QBotSharp.Core.ConsoleHelper;
 
-namespace QBotSharp.Utils;
+namespace QBotSharp.Core;
 
 //总配置类
 public class CoreConfig
 {
     public string? Protocol { get; set; }
+
     public bool EnableLog { get; set; } = true;
+
     public bool DisableConsoleInput { get; set; }
+
     public PluginRouteConfig PluginRoutes { get; set; } = new();
 }
 
 public class PluginRouteConfig
 {
     public PluginRouteRuleConfig Default { get; set; } = new();
+
     public Dictionary<string, PluginRouteRuleConfig> Plugins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public class PluginRouteRuleConfig
 {
     public string Mode { get; set; } = "whitelist";
+
     public long[] Groups { get; set; } = [];
 }
 
-public class ConfigManager
+public class ConfigManager(string? coreConfigPath = null)
 {
-    private readonly string _coreConfigPath;
-
-    public ConfigManager(string? coreConfigPath = null)
+    private static readonly TomlSerializerOptions CoreConfigSerializerOptions = new()
     {
-        _coreConfigPath = string.IsNullOrWhiteSpace(coreConfigPath)
-            ? Path.Combine(AppContext.BaseDirectory, "config.toml")
-            : Path.GetFullPath(coreConfigPath);
-    }
-    
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    };
+
+    private readonly string _coreConfigPath = string.IsNullOrWhiteSpace(coreConfigPath)
+        ? Path.Combine(AppContext.BaseDirectory, "config.toml")
+        : Path.GetFullPath(coreConfigPath);
+
     public async Task<CoreConfig?> LoadCoreConfig()
     {
         try
@@ -60,7 +66,7 @@ public class ConfigManager
                 return config;
             }
             var toml = await File.ReadAllTextAsync(_coreConfigPath);
-            config = TomlSerializer.Deserialize<CoreConfig>(toml);
+            config = TomlSerializer.Deserialize<CoreConfig>(toml, CoreConfigSerializerOptions);
             return config;
         }
         catch (Exception ex)

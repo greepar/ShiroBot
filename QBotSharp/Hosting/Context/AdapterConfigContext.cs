@@ -1,3 +1,4 @@
+using QBotSharp.Core;
 using QBotSharp.SDK.Adapter;
 using QBotSharp.Utils;
 using CH = QBotSharp.Core.ConsoleHelper;
