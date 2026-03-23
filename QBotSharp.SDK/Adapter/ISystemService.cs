@@ -6,47 +6,47 @@ namespace QBotSharp.SDK.Adapter;
 public interface ISystemService
 {
     Task<GetLoginInfoResponse> GetLoginInfoAsync()
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetLoginInfoResponse>(nameof(GetLoginInfoAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetLoginInfoAsync)}'.");
 
     Task<GetImplInfoResponse> GetImplInfoAsync()
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetImplInfoResponse>(nameof(GetImplInfoAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetImplInfoAsync)}'.");
 
     Task<GetUserProfileResponse> GetUserProfileAsync(GetUserProfileRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetUserProfileResponse>(nameof(GetUserProfileAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetUserProfileAsync)}'.");
 
     Task<GetFriendListResponse> GetFriendListAsync(GetFriendListRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetFriendListResponse>(nameof(GetFriendListAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetFriendListAsync)}'.");
 
     Task<GetFriendInfoResponse> GetFriendInfoAsync(GetFriendInfoRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetFriendInfoResponse>(nameof(GetFriendInfoAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetFriendInfoAsync)}'.");
 
     Task<GetGroupListResponse> GetGroupListAsync(GetGroupListRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupListResponse>(nameof(GetGroupListAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupListAsync)}'.");
 
     Task<GetGroupInfoResponse> GetGroupInfoAsync(GetGroupInfoRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupInfoResponse>(nameof(GetGroupInfoAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupInfoAsync)}'.");
 
     Task<GetGroupMemberListResponse> GetGroupMemberListAsync(GetGroupMemberListRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupMemberListResponse>(nameof(GetGroupMemberListAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupMemberListAsync)}'.");
 
     Task<GetGroupMemberInfoResponse> GetGroupMemberInfoAsync(GetGroupMemberInfoRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupMemberInfoResponse>(nameof(GetGroupMemberInfoAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupMemberInfoAsync)}'.");
 
     Task SetAvatarAsync(SetAvatarRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetAvatarAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetAvatarAsync)}'.");
 
     Task SetNicknameAsync(SetNicknameRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetNicknameAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetNicknameAsync)}'.");
 
     Task SetBioAsync(SetBioRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetBioAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetBioAsync)}'.");
 
     Task<GetCustomFaceUrlListResponse> GetCustomFaceUrlListAsync()
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetCustomFaceUrlListResponse>(nameof(GetCustomFaceUrlListAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetCustomFaceUrlListAsync)}'.");
 
     Task<GetCookiesResponse> GetCookiesAsync(GetCookiesRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetCookiesResponse>(nameof(GetCookiesAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetCookiesAsync)}'.");
 
     Task<GetCsrfTokenResponse> GetCsrfTokenAsync()
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetCsrfTokenResponse>(nameof(GetCsrfTokenAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetCsrfTokenAsync)}'.");
 }

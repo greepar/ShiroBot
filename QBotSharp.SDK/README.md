@@ -234,7 +234,7 @@ public sealed class MyAdapter : IBotAdapter
         ApiVersion = "1.0.0"
     };
 
-    public IAdapterConfigContext Config { get; set; } = null!;
+    public IConfigContext Config { get; set; } = null!;
 
     public async Task StartAsync()
     {

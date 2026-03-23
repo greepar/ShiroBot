@@ -6,20 +6,20 @@ namespace QBotSharp.SDK.Adapter;
 public interface IFriendService
 {
     Task SendFriendNudgeAsync(SendFriendNudgeRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SendFriendNudgeAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendFriendNudgeAsync)}'.");
 
     Task SendProfileLikeAsync(SendProfileLikeRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SendProfileLikeAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendProfileLikeAsync)}'.");
 
     Task DeleteFriendAsync(DeleteFriendRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(DeleteFriendAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(DeleteFriendAsync)}'.");
 
     Task<GetFriendRequestsResponse> GetFriendRequestsAsync(GetFriendRequestsRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetFriendRequestsResponse>(nameof(GetFriendRequestsAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetFriendRequestsAsync)}'.");
 
     Task AcceptFriendRequestAsync(AcceptFriendRequestRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(AcceptFriendRequestAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(AcceptFriendRequestAsync)}'.");
 
     Task RejectFriendRequestAsync(RejectFriendRequestRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(RejectFriendRequestAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(RejectFriendRequestAsync)}'.");
 }

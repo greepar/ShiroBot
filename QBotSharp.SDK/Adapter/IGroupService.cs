@@ -6,65 +6,65 @@ namespace QBotSharp.SDK.Adapter;
 public interface IGroupService
 {
     Task SetGroupNameAsync(SetGroupNameRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupNameAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupNameAsync)}'.");
 
     Task SetGroupAvatarAsync(SetGroupAvatarRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupAvatarAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupAvatarAsync)}'.");
 
     Task SetGroupMemberCardAsync(SetGroupMemberCardRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupMemberCardAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupMemberCardAsync)}'.");
 
     Task SetGroupMemberSpecialTitleAsync(SetGroupMemberSpecialTitleRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupMemberSpecialTitleAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupMemberSpecialTitleAsync)}'.");
 
     Task SetGroupMemberAdminAsync(SetGroupMemberAdminRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupMemberAdminAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupMemberAdminAsync)}'.");
 
     Task SetGroupMemberMuteAsync(SetGroupMemberMuteRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupMemberMuteAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupMemberMuteAsync)}'.");
 
     Task SetGroupWholeMuteAsync(SetGroupWholeMuteRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupWholeMuteAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupWholeMuteAsync)}'.");
 
     Task KickGroupMemberAsync(KickGroupMemberRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(KickGroupMemberAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(KickGroupMemberAsync)}'.");
 
     Task<GetGroupAnnouncementsResponse> GetGroupAnnouncementsAsync(GetGroupAnnouncementsRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupAnnouncementsResponse>(nameof(GetGroupAnnouncementsAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupAnnouncementsAsync)}'.");
 
     Task SendGroupAnnouncementAsync(SendGroupAnnouncementRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SendGroupAnnouncementAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupAnnouncementAsync)}'.");
 
     Task DeleteGroupAnnouncementAsync(DeleteGroupAnnouncementRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(DeleteGroupAnnouncementAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(DeleteGroupAnnouncementAsync)}'.");
 
     Task<GetGroupEssenceMessagesResponse> GetGroupEssenceMessagesAsync(GetGroupEssenceMessagesRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupEssenceMessagesResponse>(nameof(GetGroupEssenceMessagesAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupEssenceMessagesAsync)}'.");
 
     Task SetGroupEssenceMessageAsync(SetGroupEssenceMessageRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SetGroupEssenceMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SetGroupEssenceMessageAsync)}'.");
 
     Task QuitGroupAsync(QuitGroupRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(QuitGroupAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(QuitGroupAsync)}'.");
 
     Task SendGroupMessageReactionAsync(SendGroupMessageReactionRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SendGroupMessageReactionAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupMessageReactionAsync)}'.");
 
     Task SendGroupNudgeAsync(SendGroupNudgeRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(SendGroupNudgeAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupNudgeAsync)}'.");
 
     Task<GetGroupNotificationsResponse> GetGroupNotificationsAsync(GetGroupNotificationsRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetGroupNotificationsResponse>(nameof(GetGroupNotificationsAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetGroupNotificationsAsync)}'.");
 
     Task AcceptGroupRequestAsync(AcceptGroupRequestRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(AcceptGroupRequestAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(AcceptGroupRequestAsync)}'.");
 
     Task RejectGroupRequestAsync(RejectGroupRequestRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(RejectGroupRequestAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(RejectGroupRequestAsync)}'.");
 
     Task AcceptGroupInvitationAsync(AcceptGroupInvitationRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(AcceptGroupInvitationAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(AcceptGroupInvitationAsync)}'.");
 
     Task RejectGroupInvitationAsync(RejectGroupInvitationRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(RejectGroupInvitationAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(RejectGroupInvitationAsync)}'.");
 }

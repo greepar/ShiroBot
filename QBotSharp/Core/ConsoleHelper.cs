@@ -71,6 +71,15 @@ public static class ConsoleHelper
             ConsoleKeyInfo key;
             try
             {
+                // Workaround for Linux/Mac: Console.ReadKey blocks stdout
+                if (!OperatingSystem.IsWindows())
+                {
+                    while (!Console.KeyAvailable)
+                    {
+                        System.Threading.Thread.Sleep(10);
+                    }
+                }
+                
                 key = Console.ReadKey(intercept: true);
             }
             catch

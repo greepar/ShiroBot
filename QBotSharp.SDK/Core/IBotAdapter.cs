@@ -1,4 +1,5 @@
 ﻿using QBotSharp.SDK.Adapter;
+using QBotSharp.SDK.Config;
 using QBotSharp.SDK.Plugin;
 
 namespace QBotSharp.SDK;
@@ -7,7 +8,7 @@ public interface IBotAdapter
 {
     string Name { get; }
     BotComponentMetadata Metadata { get; }
-    IAdapterConfigContext Config { get; set; }
+    IConfigContext Config { get; set; }
     IConsoleLogger Logger { get; set; }
     public IFileService File { get; }
     public IFriendService Friend { get; }

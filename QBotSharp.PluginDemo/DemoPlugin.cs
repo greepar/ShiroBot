@@ -1,8 +1,8 @@
 using System.Text;
 using EmbedIO;
 using QBotSharp.Model.Common;
+using QBotSharp.PluginDemo.Services.Puppeteer;
 using QBotSharp.SDK;
-using QBotSharp.SDK.Core;
 using QBotSharp.SDK.Plugin;
 using Swan.Logging;
 
@@ -33,7 +33,9 @@ public class DemoPlugin : PluginBase
             .WithAction("/", HttpVerbs.Get, ctx =>
                 ctx.SendStringAsync("Hello World!", "text/plain", Encoding.UTF8));
         _ = _server.RunAsync();
-        
+
+
+        await BrowserManager.GetBrowserAsync();
         if (_config.SendStartupHello)
         {
             // await context.Message.SendPrivateTextAsync(1034028486, $"hello from plugin;{Name}");

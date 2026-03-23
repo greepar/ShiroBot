@@ -1,6 +1,5 @@
 ﻿using PuppeteerSharp;
 using QBotSharp.SDK;
-using QBotSharp.SDK.Core;
 
 namespace QBotSharp.PluginDemo.Services.Puppeteer;
 

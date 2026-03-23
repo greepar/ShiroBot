@@ -2,6 +2,7 @@ using QBotSharp.MilkyAdapter.AdapterImpl;
 using QBotSharp.MilkyAdapter.Milky;
 using QBotSharp.SDK;
 using QBotSharp.SDK.Adapter;
+using QBotSharp.SDK.Config;
 using QBotSharp.SDK.Plugin;
 
 namespace QBotSharp.MilkyAdapter;
@@ -23,7 +24,7 @@ public class MilkyAdapter : IBotAdapter
     public IMessageService Message { get; } = new MessageService();
     public ISystemService System { get; } = new SystemService();
     public IEventService Event { get; } = new EventService();
-    public IAdapterConfigContext Config { get; set; } = null!;
+    public IConfigContext Config { get; set; } = null!;
     public IConsoleLogger Logger { get; set; } = null!;
 
     private CancellationTokenSource? _sseTokenSource;

@@ -1,7 +1,6 @@
 using QBotSharp.Model.Common;
 using QBotSharp.SDK;
 using QBotSharp.SDK.Adapter;
-using QBotSharp.SDK.Core;
 using QBotSharp.SDK.Plugin;
 
 namespace QBotSharp.Hosting.Context;

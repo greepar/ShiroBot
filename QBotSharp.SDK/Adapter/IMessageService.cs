@@ -7,29 +7,29 @@ namespace QBotSharp.SDK.Adapter;
 public interface IMessageService
 {
     Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long uid, OutgoingSegment[] segments)
-        => AdapterFeatureNotSupported.NotSupportedAsync<SendPrivateMessageResponse>(nameof(SendPrivateMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendPrivateMessageAsync)}'.");
 
     Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId, OutgoingSegment[] segments)
-        => AdapterFeatureNotSupported.NotSupportedAsync<SendGroupMessageResponse>(nameof(SendGroupMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupMessageAsync)}'.");
 
     Task RecallPrivateMessageAsync(long userId, long messageSeq)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(RecallPrivateMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(RecallPrivateMessageAsync)}'.");
 
     Task RecallGroupMessageAsync(RecallGroupMessageRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(RecallGroupMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(RecallGroupMessageAsync)}'.");
 
     Task<GetMessageResponse> GetMessageAsync(GetMessageRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetMessageResponse>(nameof(GetMessageAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetMessageAsync)}'.");
 
     Task<GetHistoryMessagesResponse> GetHistoryMessagesAsync(GetHistoryMessagesRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetHistoryMessagesResponse>(nameof(GetHistoryMessagesAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetHistoryMessagesAsync)}'.");
 
     Task<GetResourceTempUrlResponse> GetResourceTempUrlAsync(GetResourceTempUrlRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetResourceTempUrlResponse>(nameof(GetResourceTempUrlAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetResourceTempUrlAsync)}'.");
 
     Task<GetForwardedMessagesResponse> GetForwardedMessagesAsync(GetForwardedMessagesRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync<GetForwardedMessagesResponse>(nameof(GetForwardedMessagesAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(GetForwardedMessagesAsync)}'.");
 
     Task MarkMessageAsReadAsync(MarkMessageAsReadRequest request)
-        => AdapterFeatureNotSupported.NotSupportedAsync(nameof(MarkMessageAsReadAsync));
+        => throw new NotSupportedException($"Current adapter does not support '{nameof(MarkMessageAsReadAsync)}'.");
 }

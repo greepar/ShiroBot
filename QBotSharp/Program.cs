@@ -5,7 +5,6 @@ using QBotSharp.Core;
 using QBotSharp.Hosting;
 using QBotSharp.Hosting.Context;
 using QBotSharp.SDK;
-using QBotSharp.SDK.Core;
 using QBotSharp.Utils;
 using CH = QBotSharp.Core.ConsoleHelper;
 
@@ -70,11 +69,11 @@ public static class Program
             var configuredConfigPath = NormalizeOptionalPath(parserResult.GetValue(configOption));
             //load from config
             var configManager = new ConfigManager(configuredConfigPath);
-            var coreConfig = await configManager.LoadCoreConfig() ?? new CoreConfig();
+            var coreConfig = await configManager.LoadCoreConfig();
             CH.IsEnabled = coreConfig.EnableLog;
-            var routePolicy = BuildRoutePolicy(coreConfig);
-
-            var configuredProtocol = coreConfig.Protocol?.Trim();
+            var routePolicy = coreConfig.PluginRoutes;
+            
+            var configuredProtocol = coreConfig.Protocol.Trim();
             var configuredAdapterPath = NormalizeOptionalPath(parserResult.GetValue(adapterOption));
             var disableConsoleFromArg = parserResult.GetValue(noConsoleOption);
 
@@ -102,7 +101,7 @@ public static class Program
             adapter = adapterLoader.Load(adapterPath);
 
             var adapterDirectory = Path.GetDirectoryName(adapterPath) ?? AppContext.BaseDirectory;
-            adapter.Config = new AdapterConfigContext(adapterDirectory);
+            adapter.Config = ConfigContext.ForAdapter(adapterDirectory);
             adapter.Logger = new ConsoleLogger($"[Adapter:{adapter.Name}]");
 
             var adapterMetadata = adapter.Metadata;
@@ -121,6 +120,7 @@ public static class Program
 
             CH.Info("开始加载插件...");
 
+            var botContext = new BotContext(adapter);
             var loadedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var pluginDlls = Directory.EnumerateFiles(pluginRoot, "*.dll", SearchOption.AllDirectories)
                 .Where(dll => IsPluginEntryAssembly(pluginRoot, dll))
@@ -132,7 +132,8 @@ public static class Program
                 {
                     var loader = new DllLoader<IBotPlugin>();
                     var plugin = loader.Load(dll);
-                    var pluginContext = new BotContext(
+                    var pluginContext = new PluginContext(
+                        botContext,
                         adapter,
                         plugin.Name,
                         Path.GetDirectoryName(dll),
@@ -162,11 +163,6 @@ public static class Program
             }
 
             CH.Success("已加载插件: " + string.Join(", ", loadedPlugins.Select(p => p.Plugin.Name)));
-
-            var botHost = await BotHostBuilder
-                .CreateDefault()
-                .BuildAsync();
-            await botHost.RunAsync();
 
             var hasConsole =
                 Environment.UserInteractive &&
@@ -198,69 +194,10 @@ public static class Program
 
             if (enableConsoleInput)
             {
-                while (true)
-                {
-                    var input = CH.ReadPrompt("> ", ConsoleCommands);
-                    if (string.IsNullOrWhiteSpace(input))
-                    {
-                        continue;
-                    }
-
-                    if (CH.IsEnabled ||
-                        input.StartsWith("log", StringComparison.CurrentCultureIgnoreCase) ||
-                        input.StartsWith("/log", StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        var splitInput = input.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                        switch (splitInput.FirstOrDefault()?.TrimStart('/').ToLowerInvariant())
-                        {
-                            case "unload":
-                            case "exit":
-                            case "quit":
-                                return;
-                            case "help":
-                                var orderedCommands = ConsoleCommands
-                                    .OrderBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
-                                    .ToList();
-                                var nameWidth = Math.Max(orderedCommands.Max(command => command.Name.Length), 8) + 2;
-                                var helpText = new StringBuilder()
-                                    .AppendLine("可用命令")
-                                    .AppendLine(new string('-', 24));
-
-                                foreach (var command in orderedCommands)
-                                {
-                                    helpText.Append("  ")
-                                        .Append(command.Name.PadRight(nameWidth))
-                                        .AppendLine(command.Description);
-                                }
-
-                                CH.Info(helpText.ToString().TrimEnd());
-                                break;
-                            case "path":
-                                var path = AppContext.BaseDirectory;
-                                CH.Log("打开当前程序目录: " + path);
-                                Process.Start(new ProcessStartInfo
-                                {
-                                    FileName = path,
-                                    UseShellExecute = true
-                                });
-                                break;
-                            case "log":
-                                CH.IsEnabled = !CH.IsEnabled;
-                                CH.Log(CH.IsEnabled ? "已开启日志输出" : "已关闭日志输出");
-                                break;
-                            case "clear":
-                                CH.Clear();
-                                break;
-                            default:
-                                CH.Warning($"未知命令: {input}");
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        CH.Warning("Log已被关闭，请输入 log 开启");
-                    }
-                }
+                var exitRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _ = Task.Run(() => RunConsoleCommandLoop(exitRequested));
+                await exitRequested.Task;
+                return;
             }
 
             await Task.Delay(Timeout.Infinite);
@@ -339,6 +276,74 @@ public static class Program
 
     }
 
+    private static void RunConsoleCommandLoop(TaskCompletionSource<bool> exitRequested)
+    {
+        while (true)
+        {
+            var input = CH.ReadPrompt("> ", ConsoleCommands);
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                continue;
+            }
+
+            if (CH.IsEnabled ||
+                input.StartsWith("log", StringComparison.CurrentCultureIgnoreCase) ||
+                input.StartsWith("/log", StringComparison.CurrentCultureIgnoreCase))
+            {
+                var splitInput = input.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+                switch (splitInput.FirstOrDefault()?.TrimStart('/').ToLowerInvariant())
+                {
+                    case "unload":
+                    case "exit":
+                    case "quit":
+                        exitRequested.TrySetResult(true);
+                        return;
+                    case "help":
+                        var orderedCommands = ConsoleCommands
+                            .OrderBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
+                            .ToList();
+                        var nameWidth = Math.Max(orderedCommands.Max(command => command.Name.Length), 8) + 2;
+                        var helpText = new StringBuilder()
+                            .AppendLine("可用命令")
+                            .AppendLine(new string('-', 24));
+
+                        foreach (var command in orderedCommands)
+                        {
+                            helpText.Append("  ")
+                                .Append(command.Name.PadRight(nameWidth))
+                                .AppendLine(command.Description);
+                        }
+
+                        CH.Info(helpText.ToString().TrimEnd());
+                        break;
+                    case "path":
+                        var path = AppContext.BaseDirectory;
+                        CH.Log("打开当前程序目录: " + path);
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = path,
+                            UseShellExecute = true
+                        });
+                        break;
+                    case "log":
+                        CH.IsEnabled = !CH.IsEnabled;
+                        CH.Log(CH.IsEnabled ? "已开启日志输出" : "已关闭日志输出");
+                        break;
+                    case "clear":
+                        CH.Clear();
+                        break;
+                    default:
+                        CH.Warning($"未知命令: {input}");
+                        break;
+                }
+            }
+            else
+            {
+                CH.Warning("Log已被关闭，请输入 log 开启");
+            }
+        }
+    }
+
     private static string? NormalizeOptionalPath(string? path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -349,29 +354,6 @@ public static class Program
         return Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
             : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, path));
-    }
-
-    private static PluginRoutePolicy BuildRoutePolicy(CoreConfig config)
-    {
-        var policy = new PluginRoutePolicy
-        {
-            Default = new PluginRouteRule
-            {
-                Mode = config.PluginRoutes.Default.Mode,
-                Groups = config.PluginRoutes.Default.Groups
-            }
-        };
-
-        foreach (var (pluginName, rule) in config.PluginRoutes.Plugins)
-        {
-            policy.Plugins[pluginName] = new PluginRouteRule
-            {
-                Mode = rule.Mode,
-                Groups = rule.Groups
-            };
-        }
-
-        return policy;
     }
 
     private static bool IsPluginEntryAssembly(string pluginRoot, string dllPath)

@@ -1,7 +1,6 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using QBotSharp.SDK;
 using Tomlyn;
-using Tomlyn.Serialization;
 using CH = QBotSharp.Core.ConsoleHelper;
 
 namespace QBotSharp.Core;
@@ -9,13 +8,20 @@ namespace QBotSharp.Core;
 //总配置类
 public class CoreConfig
 {
-    public string? Protocol { get; set; }
+    public string Protocol { get; set; } = string.Empty;
 
     public bool EnableLog { get; set; } = true;
 
-    public bool DisableConsoleInput { get; set; }
+    public bool DisableConsoleInput { get; set; } = false;
 
-    public PluginRouteConfig PluginRoutes { get; set; } = new();
+    public PluginRouteConfig PluginRoutes { get; set; } = new()
+    {
+        Default = new PluginRouteRuleConfig
+        {
+            Mode = "blacklist",
+            Groups = []
+        }
+    };
 }
 
 public class PluginRouteConfig
@@ -23,6 +29,16 @@ public class PluginRouteConfig
     public PluginRouteRuleConfig Default { get; set; } = new();
 
     public Dictionary<string, PluginRouteRuleConfig> Plugins { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool AllowsGroup(string pluginName, long groupId)
+    {
+        if (!Plugins.TryGetValue(pluginName, out var rule))
+        {
+            return Default.IsMatch(groupId);
+        }
+
+        return rule.IsMatch(groupId);
+    }
 }
 
 public class PluginRouteRuleConfig
@@ -30,16 +46,30 @@ public class PluginRouteRuleConfig
     public string Mode { get; set; } = "whitelist";
 
     public long[] Groups { get; set; } = [];
+
+    public bool IsMatch(long groupId)
+    {
+        var contains = Groups.Contains(groupId);
+        return NormalizeMode(Mode) switch
+        {
+            "blacklist" => !contains,
+            _ => contains
+        };
+    }
+
+    private static string NormalizeMode(string? mode)
+    {
+        return string.IsNullOrWhiteSpace(mode) ? "whitelist" : mode.ToLowerInvariant();
+    }
 }
 
-[TomlSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 public class ConfigManager(string? coreConfigPath = null)
 {
     private readonly string _coreConfigPath = string.IsNullOrWhiteSpace(coreConfigPath)
         ? Path.Combine(AppContext.BaseDirectory, "config.toml")
         : Path.GetFullPath(coreConfigPath);
 
-    private readonly TomlSerializerOptions _options = new TomlSerializerOptions
+    private readonly TomlSerializerOptions _options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         WriteIndented = true,
@@ -48,113 +78,111 @@ public class ConfigManager(string? coreConfigPath = null)
         DefaultIgnoreCondition = TomlIgnoreCondition.WhenWritingNull,
     };
     
-    public async Task<CoreConfig?> LoadCoreConfig()
+    public async Task<CoreConfig> LoadCoreConfig()
     {
         try
         {
-            if (!File.Exists(_coreConfigPath))
-            {
-                var configTemplate = new CoreConfig()
-                {
-                    Protocol = "",
-                    EnableLog = true,
-                    DisableConsoleInput = false,
-                    PluginRoutes = new PluginRouteConfig()
-                    {
-                        Default = new PluginRouteRuleConfig()
-                        {
-                            Mode = "blacklist",
-                            Groups = []
-                        },
-                        Plugins = new Dictionary<string, PluginRouteRuleConfig>(StringComparer.OrdinalIgnoreCase)
-                        {
-                            ["DemoPlugin"] = new PluginRouteRuleConfig()
-                            {
-                                Mode = "whitelist",
-                                Groups = [622603336, 742274811]
-                            }
-                        }
-                    }
-                };
-                Directory.CreateDirectory(Path.GetDirectoryName(_coreConfigPath)!);
-                CH.Warning("未找到配置文件，已生成默认配置文件 config.toml。");
-                var tomlString = TomlSerializer.Serialize(configTemplate,_options);
-                await File.WriteAllTextAsync(_coreConfigPath, tomlString);
-                return configTemplate;
-            }
-            var toml = await File.ReadAllTextAsync(_coreConfigPath);
-            var config = TomlSerializer.Deserialize<CoreConfig>(toml, _options);
+            if (!File.Exists(_coreConfigPath)) return await CreateDefaultConfig();
+            var tomlString = await File.ReadAllTextAsync(_coreConfigPath);
+            if (string.IsNullOrWhiteSpace(tomlString)) return await CreateDefaultConfig();
+            var config = TomlSerializer.Deserialize<CoreConfig>(tomlString, _options);
             return config;
         }
         catch (Exception ex)
         {
             throw new Exception($"加载配置时出错:{ex.Message}");
         }
+        
+        //创建默认配置保存的方法
+        async Task<CoreConfig> CreateDefaultConfig()
+        {
+            BotLog.Info("未找到配置文件，正在创建默认配置...");
+            var defaultConfig = new CoreConfig();
+            var tomlString = FormatToml(TomlSerializer.Serialize(defaultConfig, _options));
+            Directory.CreateDirectory(Path.GetDirectoryName(_coreConfigPath)!);
+            await File.WriteAllTextAsync(_coreConfigPath, tomlString);
+            return defaultConfig;
+        }
     }
 
     public T? LoadPluginConfig<T>(string pluginDirectory) where T : class, new()
     {
-        var configPath = Path.Combine(pluginDirectory, "config.toml");
-        try
-        {
-            Directory.CreateDirectory(pluginDirectory);
-            if (!File.Exists(configPath))
-            {
-                var newConfig = Activator.CreateInstance<T>();
-                CH.Warning($"未找到插件目录 {pluginDirectory} 的配置文件，已生成默认配置文件 config.toml。");
-                var tomlString = TomlSerializer.Serialize(newConfig, _options);
-                File.WriteAllText(configPath, tomlString);
-                return newConfig;
-            }
-            var toml = File.ReadAllText(configPath);
-            var config = TomlSerializer.Deserialize<T>(toml, _options);
-            return config;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"加载插件目录 {pluginDirectory} 配置时出错: {ex.Message}", ex);
-        }
+        return LoadScopedConfig<T>(pluginDirectory, "插件目录");
     }
 
     public T? LoadAdapterConfig<T>(string adapterDirectory) where T : class, new()
     {
-        var configPath = Path.Combine(adapterDirectory, "config.toml");
+        return LoadScopedConfig<T>(adapterDirectory, "适配器目录");
+    }
+
+    public void SavePluginConfig<T>(string pluginDirectory, T config) where T : class
+    {
+        SaveScopedConfig(pluginDirectory, config);
+    }
+
+    public void SaveAdapterConfig<T>(string adapterDirectory, T config) where T : class
+    {
+        SaveScopedConfig(adapterDirectory, config);
+    }
+
+    public T? LoadScopedConfig<T>(string directory, string scopeName) where T : class, new()
+    {
+        var configPath = Path.Combine(directory, "config.toml");
         try
         {
-            Directory.CreateDirectory(adapterDirectory);
+            Directory.CreateDirectory(directory);
             if (!File.Exists(configPath))
             {
                 var newConfig = Activator.CreateInstance<T>();
-                CH.Warning($"未找到适配器目录 {adapterDirectory} 的配置文件，已生成默认配置文件 config.toml。");
+                CH.Warning($"未找到{scopeName} {directory} 的配置文件，已生成默认配置文件 config.toml。");
                 var tomlString = TomlSerializer.Serialize(newConfig, _options);
                 File.WriteAllText(configPath, tomlString);
                 return newConfig;
             }
-
             var toml = File.ReadAllText(configPath);
             var config = TomlSerializer.Deserialize<T>(toml, _options);
             return config;
         }
         catch (Exception ex)
         {
-            throw new Exception($"加载适配器 {adapterDirectory} 配置时出错: {ex.Message}", ex);
+            throw new Exception($"加载{scopeName} {directory} 配置时出错: {ex.Message}", ex);
         }
     }
 
-    public void SavePluginConfig<T>(string pluginDirectory, T config) where T : class
+    public void SaveScopedConfig<T>(string directory, T config) where T : class
     {
-        SaveToml(Path.Combine(pluginDirectory, "config.toml"), config, _options);
-    }
-
-    public void SaveAdapterConfig<T>(string adapterDirectory, T config) where T : class
-    {
-        SaveToml(Path.Combine(adapterDirectory, "config.toml"), config, _options);
+        SaveToml(Path.Combine(directory, "config.toml"), config, _options);
     }
 
     private static void SaveToml<T>(string configPath, T config, TomlSerializerOptions options) where T : class
     {
         Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-        var tomlString = TomlSerializer.Serialize(config, options);
+        var tomlString = FormatToml(TomlSerializer.Serialize(config, options));
         File.WriteAllText(configPath, tomlString);
+    }
+
+    private static string FormatToml(string toml)
+    {
+        var lines = toml.Replace("\r\n", "\n").Split('\n');
+        var builder = new System.Text.StringBuilder();
+        
+        foreach (var line in lines)
+        {
+            var trimmed = line.TrimStart();
+            var isTableHeader = trimmed.StartsWith('[') && trimmed.EndsWith(']');
+
+            if (isTableHeader && builder.Length > 0)
+            {
+                var current = builder.ToString();
+                if (!current.EndsWith("\n\n", StringComparison.Ordinal))
+                {
+                    builder.AppendLine();
+                }
+            }
+
+            builder.AppendLine(line);
+        }
+
+        return builder.ToString();
     }
 }

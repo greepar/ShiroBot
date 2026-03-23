@@ -1,4 +1,6 @@
-﻿namespace QBotSharp.SDK.Plugin;
+﻿using QBotSharp.SDK.Config;
+
+namespace QBotSharp.SDK.Plugin;
 
 public interface IBotContext
 {
@@ -8,5 +10,5 @@ public interface IBotContext
     public IMessageContext Message { get;  }  
     public ISystemContext System { get; }
     public IEventContext Event { get; }
-    public IPluginConfigContext Config { get; }
+    public IConfigContext Config { get; }
 }
