@@ -1,5 +1,5 @@
 using QBotSharp.Model.Common;
-using QBotSharp.SDK;
+using QBotSharp.SDK.Abstractions;
 using QBotSharp.SDK.Adapter;
 using QBotSharp.SDK.Plugin;
 
@@ -12,7 +12,6 @@ public class EventContext(
 {
     private const int DisableThreshold = 5;
     private readonly Dictionary<Delegate, Delegate> _wrappedHandlers = new();
-    private readonly IConsoleLogger _logger = logger;
     private int _consecutiveFailures;
     private int _isDisabled;
 
@@ -151,14 +150,14 @@ public class EventContext(
                     return;
                 }
 
-                using var _ = BotLog.BeginScope(_logger);
+                using var _ = BotLog.BeginScope(logger);
                 await handler(evt);
                 Interlocked.Exchange(ref _consecutiveFailures, 0);
             }
             catch (Exception ex)
             {
                 var failures = Interlocked.Increment(ref _consecutiveFailures);
-                using var _ = BotLog.BeginScope(_logger);
+                using var _ = BotLog.BeginScope(logger);
                 BotLog.Error($"处理事件 {eventName} 时发生异常: {ex.Message}");
 
                 if (failures >= DisableThreshold && Interlocked.Exchange(ref _isDisabled, 1) == 0)

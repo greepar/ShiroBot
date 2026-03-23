@@ -5,6 +5,8 @@ using QBotSharp.Core;
 using QBotSharp.Hosting;
 using QBotSharp.Hosting.Context;
 using QBotSharp.SDK;
+using QBotSharp.SDK.Abstractions;
+using QBotSharp.SDK.Core;
 using QBotSharp.Utils;
 using CH = QBotSharp.Core.ConsoleHelper;
 
@@ -60,7 +62,6 @@ public static class Program
         CH.Info("QBotSharp 启动中...");
 
         DllLoader<IBotAdapter>? adapterLoader = null;
-        IBotAdapter? adapter = null;
         var loadedPlugins = new List<(IBotPlugin Plugin, DllLoader<IBotPlugin> Loader)>();
 
         try
@@ -98,7 +99,7 @@ public static class Program
 
             CH.Log("开始加载适配器: " + adapterPath);
             adapterLoader = new DllLoader<IBotAdapter>();
-            adapter = adapterLoader.Load(adapterPath);
+            var adapter = adapterLoader.Load(adapterPath);
 
             var adapterDirectory = Path.GetDirectoryName(adapterPath) ?? AppContext.BaseDirectory;
             adapter.Config = ConfigContext.ForAdapter(adapterDirectory);
@@ -229,21 +230,7 @@ public static class Program
 
                 loader.Unload();
             }
-
-            if (adapter is not null)
-            {
-                try
-                {
-                    using (BotLog.BeginScope(adapter.Logger))
-                    {
-                        await adapter.StopAsync();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    CH.Error($"适配器停止失败: {adapter.Name} - {ex.Message}");
-                }
-            }
+            
 
             adapterLoader?.Unload();
         }

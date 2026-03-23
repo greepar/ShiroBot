@@ -1,6 +1,6 @@
 using QBotSharp.SDK.Plugin;
 
-namespace QBotSharp.SDK;
+namespace QBotSharp.SDK.Abstractions;
 
 public static class BotLog
 {

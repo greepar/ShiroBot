@@ -1,5 +1,6 @@
 using System.Text.Json;
 using QBotSharp.SDK;
+using QBotSharp.SDK.Abstractions;
 using Tomlyn;
 using CH = QBotSharp.Core.ConsoleHelper;
 

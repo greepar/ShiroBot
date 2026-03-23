@@ -32,7 +32,6 @@
                                        $(PublishDir)QBotSharp.SDK.dll;
                                        $(PublishDir)QBotSharp.Model.dll;
                                        $(PublishDir)System*.dll;
-                                       $(PublishDir)Microsoft*.dll;
                                        $(PublishDir)mscorlib.dll;
                                        $(PublishDir)netstandard.dll" />
             <RepackInput Include="@(RepackDependency)" />

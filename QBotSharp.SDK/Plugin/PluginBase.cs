@@ -1,5 +1,6 @@
 using QBotSharp.Model.Common;
 using QBotSharp.SDK;
+using QBotSharp.SDK.Core;
 
 namespace QBotSharp.SDK.Plugin;
 

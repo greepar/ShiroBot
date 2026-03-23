@@ -76,7 +76,7 @@ public static class ConsoleHelper
                 {
                     while (!Console.KeyAvailable)
                     {
-                        System.Threading.Thread.Sleep(10);
+                        Thread.Sleep(10);
                     }
                 }
                 

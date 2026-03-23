@@ -3,6 +3,7 @@ using EmbedIO;
 using QBotSharp.Model.Common;
 using QBotSharp.PluginDemo.Services.Puppeteer;
 using QBotSharp.SDK;
+using QBotSharp.SDK.Abstractions;
 using QBotSharp.SDK.Plugin;
 using Swan.Logging;
 

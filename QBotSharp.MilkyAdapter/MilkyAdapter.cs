@@ -43,7 +43,7 @@ public class MilkyAdapter : IBotAdapter
             });
         }
 
-        MilkyClientManager.Initialize(config.BaseUrl, config.AccessToken, Logger);
+        MilkyClientManager.Initialize(config.BaseUrl, config.AccessToken);
         var milky = MilkyClientManager.Instance;
         Logger.Info("开始连接 Milky...");
         var loginInfo = await milky.System.GetLoginInfoAsync();
