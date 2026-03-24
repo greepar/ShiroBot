@@ -1,0 +1,76 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <OutputPath>bin\Debug\</OutputPath>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <ManagedPluginDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\plugins\ShiroBot.PluginDemo</ManagedPluginDebugDir>
+        <ManagedAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\ShiroBot.AdapterDemo</ManagedAdapterDebugDir>
+        <ManagedMilkyAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\ShiroBot.MilkyAdapter</ManagedMilkyAdapterDebugDir>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)'=='Release'">
+        <PublishReadyToRun>false</PublishReadyToRun>
+        <SelfContained>true</SelfContained>
+        <PublishSingleFile>true</PublishSingleFile>
+        <PublishAot>false</PublishAot>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <DebuggerSupport>false</DebuggerSupport>
+        <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.5" />
+        <PackageReference Include="SkiaSharp" Version="3.119.3-preview.1.1" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.3-preview.1.1" />
+        <PackageReference Include="Spectre.Console" Version="0.54.1-alpha.0.80" />
+        <PackageReference Include="System.CommandLine" Version="3.0.0-preview.2.26159.112" />
+        <PackageReference Include="Tomlyn" Version="2.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\ShiroBot.SDK\ShiroBot.SDK.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\ShiroBot.AdapterDemo\ShiroBot.AdapterDemo.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\ShiroBot.MilkyAdapter\ShiroBot.MilkyAdapter.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'">
+        <ProjectReference Include="..\ShiroBot.PluginDemo\ShiroBot.PluginDemo.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    </ItemGroup>
+
+    <Target Name="CopyManagedDebugArtifacts"
+            AfterTargets="Build"
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+        <MSBuild Projects="..\ShiroBot.PluginDemo\ShiroBot.PluginDemo.csproj"
+                 Targets="CopyPluginToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'" />
+
+        <MSBuild Projects="..\ShiroBot.AdapterDemo\ShiroBot.AdapterDemo.csproj"
+                 Targets="CopyAdapterToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'" />
+
+        <MSBuild Projects="..\ShiroBot.MilkyAdapter\ShiroBot.MilkyAdapter.csproj"
+                 Targets="CopyAdapterToHost"
+                 Properties="Configuration=$(Configuration)"
+                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'" />
+    </Target>
+
+</Project>
