@@ -5,32 +5,31 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <HostAdapterDir>..\QBotSharp\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
+        <HostPluginDir>..\ShiroBot\bin\Debug\$(TargetFramework)\plugins\$(AssemblyName)\</HostPluginDir>
         <Configurations>Debug;DebugPlugin;DebugAdapter;DebugAll;Release</Configurations>
     </PropertyGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\ShiroBot.SDK\ShiroBot.SDK.csproj" />
         <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" PrivateAssets="all"/>
-        <ProjectReference Include="..\ShiroBot.SDK\ShiroBot.SDK.csproj" PrivateAssets="runtime" />
     </ItemGroup>
 
-    <Target Name="RepackAdapter" AfterTargets="Publish" Condition="'$(Configuration)'=='Release'">
+    <Target Name="RepackPlugin" AfterTargets="Publish" Condition="'$(Configuration)'=='Release'">
         <PropertyGroup>
-            <MergedAdapterFile>$(PublishDir)$(AssemblyName).merged.dll</MergedAdapterFile>
+            <MergedPluginFile>$(PublishDir)$(AssemblyName).merged.dll</MergedPluginFile>
         </PropertyGroup>
 
         <ItemGroup>
             <RepackInput Include="$(PublishDir)$(AssemblyName).dll" />
             <RepackDependency Include="$(PublishDir)*.dll"
                               Exclude="$(PublishDir)$(AssemblyName).dll;
-                                       $(PublishDir)QBotSharp.SDK.dll;
-                                       $(PublishDir)QBotSharp.Model.dll;
-                                       $(PublishDir)System*.dll;
+                                       $(PublishDir)ShiroBot.SDK.dll;
+                                       $(PublishDir)ShiroBot.Model.dll;
                                        $(PublishDir)Microsoft*.dll;
+                                       $(PublishDir)System*.dll;
                                        $(PublishDir)mscorlib.dll;
                                        $(PublishDir)netstandard.dll" />
             <RepackInput Include="@(RepackDependency)" />
@@ -38,29 +37,29 @@
 
         <ILRepack
                 TargetKind="Dll"
-                OutputFile="$(MergedAdapterFile)"
+                OutputFile="$(MergedPluginFile)"
                 InputAssemblies="@(RepackInput)"
                 Internalize="true"
                 Parallel="true"
                 DebugInfo="true" />
 
-        <Copy SourceFiles="$(MergedAdapterFile)" DestinationFiles="$(PublishDir)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
-        <Delete Files="$(MergedAdapterFile)" />
+        <Copy SourceFiles="$(MergedPluginFile)" DestinationFiles="$(PublishDir)$(AssemblyName).dll" OverwriteReadOnlyFiles="true" />
+        <Delete Files="$(MergedPluginFile)" />
         <Delete Files="@(RepackDependency)" />
     </Target>
 
-    <Target Name="CopyAdapterToHost"
+    <Target Name="CopyPluginToHost"
             AfterTargets="Build"
-            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
-        <MakeDir Directories="$(HostAdapterDir)" />
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'">
+        <MakeDir Directories="$(HostPluginDir)" />
 
         <ItemGroup>
-            <AdapterDebugOutput Include="$(TargetDir)**\*"
-                                Exclude="$(TargetDir)QBotSharp.SDK.dll;$(TargetDir)QBotSharp.SDK.pdb;$(TargetDir)QBotSharp.Model.dll;$(TargetDir)QBotSharp.Model.pdb" />
+            <PluginDebugOutput Include="$(TargetDir)**\*"
+                               Exclude="$(TargetDir)ShiroBot.SDK.dll;$(TargetDir)ShiroBot.SDK.pdb;$(TargetDir)ShiroBot.Model.dll;$(TargetDir)ShiroBot.Model.pdb" />
         </ItemGroup>
 
-        <Copy SourceFiles="@(AdapterDebugOutput)"
-              DestinationFiles="@(AdapterDebugOutput->'$(HostAdapterDir)%(RecursiveDir)%(Filename)%(Extension)')"
+        <Copy SourceFiles="@(PluginDebugOutput)"
+              DestinationFiles="@(PluginDebugOutput->'$(HostPluginDir)%(RecursiveDir)%(Filename)%(Extension)')"
               SkipUnchangedFiles="true" />
     </Target>
 

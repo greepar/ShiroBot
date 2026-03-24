@@ -1,6 +1,6 @@
 using ShiroBot.SDK.Adapter;
 
-namespace ShiroBot.AdapterDemo.AdapterImpl;
+namespace ShiroBot.DemoAdapter.AdapterImpl;
 
 public class FileService : IFileService
 {

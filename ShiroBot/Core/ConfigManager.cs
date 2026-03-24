@@ -87,7 +87,7 @@ public class ConfigManager(string? coreConfigPath = null)
             var tomlString = await File.ReadAllTextAsync(_coreConfigPath);
             if (string.IsNullOrWhiteSpace(tomlString)) return await CreateDefaultConfig();
             var config = TomlSerializer.Deserialize<CoreConfig>(tomlString, _options);
-            return config;
+            return config ?? await CreateDefaultConfig();
         }
         catch (Exception ex)
         {

@@ -5,17 +5,16 @@
         <TargetFramework>net10.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugAll;Release</Configurations>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+    <PropertyGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
         <OutputPath>bin\Debug\</OutputPath>
     </PropertyGroup>
 
     <PropertyGroup>
-        <ManagedPluginDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\plugins\ShiroBot.PluginDemo</ManagedPluginDebugDir>
-        <ManagedAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\ShiroBot.AdapterDemo</ManagedAdapterDebugDir>
-        <ManagedMilkyAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\ShiroBot.MilkyAdapter</ManagedMilkyAdapterDebugDir>
+        <ManagedDemoPluginDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\plugins\ShiroBot.DemoPlugin</ManagedDemoPluginDebugDir>
+        <ManagedAdapterDebugDir>$(MSBuildProjectDirectory)\bin\Debug\$(TargetFramework)\adapters\ShiroBot.DemoAdapter</ManagedAdapterDebugDir>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(Configuration)'=='Release'">
@@ -35,7 +34,7 @@
         <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="3.119.3-preview.1.1" />
         <PackageReference Include="Spectre.Console" Version="0.54.1-alpha.0.80" />
         <PackageReference Include="System.CommandLine" Version="3.0.0-preview.2.26159.112" />
-        <PackageReference Include="Tomlyn" Version="2.0.0" />
+        <PackageReference Include="Tomlyn" Version="2.2.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -43,34 +42,25 @@
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
-        <ProjectReference Include="..\ShiroBot.AdapterDemo\ShiroBot.AdapterDemo.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
-    </ItemGroup>
-
-    <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
-        <ProjectReference Include="..\ShiroBot.MilkyAdapter\ShiroBot.MilkyAdapter.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <ProjectReference Include="..\ShiroBot.DemoAdapter\ShiroBot.DemoAdapter.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'">
-        <ProjectReference Include="..\ShiroBot.PluginDemo\ShiroBot.PluginDemo.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+        <ProjectReference Include="..\ShiroBot.DemoPlugin\ShiroBot.DemoPlugin.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
     </ItemGroup>
 
     <Target Name="CopyManagedDebugArtifacts"
             AfterTargets="Build"
-            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
-        <MSBuild Projects="..\ShiroBot.PluginDemo\ShiroBot.PluginDemo.csproj"
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
+        <MSBuild Projects="..\ShiroBot.DemoPlugin\ShiroBot.DemoPlugin.csproj"
                  Targets="CopyPluginToHost"
                  Properties="Configuration=$(Configuration)"
                  Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'" />
 
-        <MSBuild Projects="..\ShiroBot.AdapterDemo\ShiroBot.AdapterDemo.csproj"
+        <MSBuild Projects="..\ShiroBot.DemoAdapter\ShiroBot.DemoAdapter.csproj"
                  Targets="CopyAdapterToHost"
                  Properties="Configuration=$(Configuration)"
                  Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'" />
-
-        <MSBuild Projects="..\ShiroBot.MilkyAdapter\ShiroBot.MilkyAdapter.csproj"
-                 Targets="CopyAdapterToHost"
-                 Properties="Configuration=$(Configuration)"
-                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'" />
     </Target>
 
 </Project>

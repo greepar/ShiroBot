@@ -1,5 +1,5 @@
 using ShiroBot.SDK.Adapter;
 
-namespace ShiroBot.AdapterDemo.AdapterImpl;
+namespace ShiroBot.DemoAdapter.AdapterImpl;
 
 public sealed class EventService : IEventService;

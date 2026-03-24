@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using ShiroBot.SDK.Adapter;
 
-namespace ShiroBot.AdapterDemo.AdapterImpl;
+namespace ShiroBot.DemoAdapter.AdapterImpl;
 
 public class MessageService : IMessageService
 {

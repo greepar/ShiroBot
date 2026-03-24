@@ -5,24 +5,17 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <HostAdapterDir>..\QBotSharp\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
-        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
+        <HostAdapterDir>..\ShiroBot\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
+        <Configurations>Debug;DebugPlugin;DebugAdapter;DebugAll;Release</Configurations>
     </PropertyGroup>
 
     <ItemGroup>
-        
-        <PackageReference Include="Milky.Net.Client" Version="3.0.0" />
-        
-        <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime" />
-
-        <ProjectReference Include="..\ShiroBot.SDK\ShiroBot.SDK.csproj" PrivateAssets="runtime" />
-        <ProjectReference Include="..\ShiroBot.Model\ShiroBot.Model.csproj" PrivateAssets="runtime" />
-
         <PackageReference Include="ILRepack.Lib.MSBuild.Task" Version="2.0.44.1">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" PrivateAssets="all"/>
+        <ProjectReference Include="..\ShiroBot.SDK\ShiroBot.SDK.csproj" PrivateAssets="runtime" />
     </ItemGroup>
 
     <Target Name="RepackAdapter" AfterTargets="Publish" Condition="'$(Configuration)'=='Release'">
@@ -34,8 +27,8 @@
             <RepackInput Include="$(PublishDir)$(AssemblyName).dll" />
             <RepackDependency Include="$(PublishDir)*.dll"
                               Exclude="$(PublishDir)$(AssemblyName).dll;
-                                       $(PublishDir)QBotSharp.SDK.dll;
-                                       $(PublishDir)QBotSharp.Model.dll;
+                                       $(PublishDir)ShiroBot.SDK.dll;
+                                       $(PublishDir)ShiroBot.Model.dll;
                                        $(PublishDir)System*.dll;
                                        $(PublishDir)Microsoft*.dll;
                                        $(PublishDir)mscorlib.dll;
@@ -58,17 +51,17 @@
 
     <Target Name="CopyAdapterToHost"
             AfterTargets="Build"
-            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
         <MakeDir Directories="$(HostAdapterDir)" />
 
         <ItemGroup>
             <AdapterDebugOutput Include="$(TargetDir)**\*"
-                                Exclude="$(TargetDir)QBotSharp.SDK.dll;$(TargetDir)QBotSharp.SDK.pdb;$(TargetDir)QBotSharp.Model.dll;$(TargetDir)QBotSharp.Model.pdb" />
+                                Exclude="$(TargetDir)ShiroBot.SDK.dll;$(TargetDir)ShiroBot.SDK.pdb;$(TargetDir)ShiroBot.Model.dll;$(TargetDir)ShiroBot.Model.pdb" />
         </ItemGroup>
 
         <Copy SourceFiles="@(AdapterDebugOutput)"
               DestinationFiles="@(AdapterDebugOutput->'$(HostAdapterDir)%(RecursiveDir)%(Filename)%(Extension)')"
               SkipUnchangedFiles="true" />
     </Target>
-    
+
 </Project>

@@ -1,10 +1,10 @@
-using ShiroBot.AdapterDemo.AdapterImpl;
+using ShiroBot.DemoAdapter.AdapterImpl;
 using ShiroBot.SDK;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Config;
 using ShiroBot.SDK.Plugin;
 
-namespace ShiroBot.AdapterDemo;
+namespace ShiroBot.DemoAdapter;
 
 
 public class DemoAdapter : IBotAdapter
@@ -12,7 +12,7 @@ public class DemoAdapter : IBotAdapter
     public string Name => "demo";
     public BotComponentMetadata Metadata { get; } = new()
     {
-        Name = "ShiroBot.AdapterDemo",
+        Name = "ShiroBot.DemoAdapter",
         Version = "1.0.0",
         Description = "示例适配器"
     };

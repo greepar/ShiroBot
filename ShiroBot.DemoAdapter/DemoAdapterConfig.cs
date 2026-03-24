@@ -1,4 +1,4 @@
-namespace ShiroBot.AdapterDemo;
+namespace ShiroBot.DemoAdapter;
 
 public sealed class DemoAdapterConfig
 {

@@ -1,3 +1,0 @@
-dotnet publish C:\Users\greep\RiderProjects\QB\QBotSharp-SDK\QBotSharp.LagrangeAdapter\QBotSharp.LagrangeAdapter.csproj
-copy /Y "C:\Users\greep\RiderProjects\QB\QBotSharp-SDK\QBotSharp.LagrangeAdapter\bin\Release\net10.0\publish\QBotSharp.LagrangeAdapter.dll" "C:\Users\greep\RiderProjects\QB\QBotSharp\QBotSharp\bin\Debug\net10.0\adapters\"
-C:\Users\greep\RiderProjects\QB\QBotSharp\QBotSharp\bin\Debug\net10.0\QBotSharp.exe
