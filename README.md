@@ -1,7 +1,7 @@
 <div align="center">
 
 <a href="https://github.com/greepar/ShiroBot">
-  <img src="./assets/shirobana.webp" alt="ShiroBot" width="220" />
+  <img src="./shirobana.webp" alt="ShiroBot" width="220" />
 </a>
 
 <p><strong><span style="font-size: 2.2em;">ShiroBot</span></strong></p>
