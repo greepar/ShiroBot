@@ -1,5 +1,4 @@
 using ShiroBot.Model.Common;
-using ShiroBot.SDK;
 using ShiroBot.SDK.Abstractions;
 using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
@@ -21,6 +20,11 @@ public sealed class DemoPlugin : PluginBase
         FriendCommands.MapExact("#help", HandleFriendHelpAsync);
         FriendCommands.MapExact("#ping", HandleFriendPingAsync);
         FriendCommands.MapPrefix("#echo", HandleFriendEchoAsync);
+        FriendCommands.MapPrefix("#server", async message =>
+        {
+            BotLog.Error("这是一个错误日志示例");
+            await Context.Message.ReplyAsync(message, "服务器信息: ShiroBot Demo Server v1.0");
+        });
         // GroupCommands.Map("#help", HandleGroupHelpAsync);
         // GroupCommands.Map("#ping", HandleGroupPingAsync);
         // GroupCommands.Map("#echo", HandleGroupEchoAsync);
@@ -31,32 +35,33 @@ public sealed class DemoPlugin : PluginBase
 
     protected override Task OnUnloadAsync()
     {
+        
         BotLog.Info("标准示例插件已卸载。");
         return Task.CompletedTask;
     }
 
     private Task HandleFriendHelpAsync(FriendIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping, #echo <内容>");
+        Context.Message.ReplyAsync(message, "可用命令: #help, #ping, #echo <内容>");
 
     private Task HandleFriendPingAsync(FriendIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "pong");
+        Context.Message.ReplyAsync(message, "pong");
 
     private Task HandleFriendEchoAsync(FriendIncomingMessage message)
     {
         var content = ExtractEchoContent(message.GetPlainText());
-        return Context.Message.ReplyTextAsync(message, $"你说了: {content}");
+        return Context.Message.ReplyAsync(message, $"你说了: {content}");
     }
 
     private Task HandleGroupHelpAsync(GroupIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping, #echo <内容>");
+        Context.Message.ReplyAsync(message, "可用命令: #help, #ping, #echo <内容>");
 
     private Task HandleGroupPingAsync(GroupIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "pong");
+        Context.Message.ReplyAsync(message, "pong");
 
     private Task HandleGroupEchoAsync(GroupIncomingMessage message)
     {
         var content = ExtractEchoContent(message.GetPlainText());
-        return Context.Message.ReplyTextAsync(message, $"你说了: {content}");
+        return Context.Message.ReplyAsync(message, $"你说了: {content}");
     }
 
     private static string ExtractEchoContent(string text)
