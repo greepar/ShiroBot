@@ -1,6 +1,9 @@
 namespace ShiroBot.Hosting.Context;
 
-internal sealed class ConfigWatchSubscription(FileSystemWatcher watcher, Timer timer) : IDisposable
+internal sealed class ConfigWatchSubscription(
+    FileSystemWatcher watcher,
+    Timer timer,
+    Action unsubscribe) : IDisposable
 {
     private int _disposed;
 
@@ -11,6 +14,8 @@ internal sealed class ConfigWatchSubscription(FileSystemWatcher watcher, Timer t
             return;
         }
 
+        watcher.EnableRaisingEvents = false;
+        unsubscribe();
         watcher.Dispose();
         timer.Dispose();
     }

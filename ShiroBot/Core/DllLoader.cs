@@ -4,10 +4,12 @@ public class DllLoader<T>
     where T : class
 {
     private DllLoadContext? _alc;
+    private WeakReference? _alcWeakReference;
 
     public T Load(string dllPath)
     {
         _alc = new DllLoadContext(dllPath);
+        _alcWeakReference = new WeakReference(_alc);
 
         var assembly = _alc.LoadFromAssemblyPath(dllPath);
 
@@ -19,23 +21,59 @@ public class DllLoader<T>
 
         if (candidateTypes.Count == 0)
             throw new Exception($"No {typeof(T).Name} found in DLL");
-
-        // 优先查找标记了 PrimaryAdapter 特性的类型
+        
         var primaryType = candidateTypes
-            .FirstOrDefault(t => t.GetCustomAttributes(false)
-                .Any(attr => attr.GetType().Name == "BotAdapterAttribute"));
-
-        var type = primaryType ?? candidateTypes.First();
-
-        return Activator.CreateInstance(type) as T ?? throw new InvalidOperationException("Failed to create dllInstance");
+            .FirstOrDefault() ?? candidateTypes.First();
+        
+        return Activator.CreateInstance(primaryType) as T ?? throw new InvalidOperationException("Failed to create dllInstance");
     }
 
-    public void Unload()
+    public WeakReference? BeginUnload()
     {
         _alc?.Unload();
         _alc = null;
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
+        return _alcWeakReference;
+    }
+
+    public static bool WaitForUnload(WeakReference? alcWeakReference, int maxAttempts = 50, int delayMs = 100)
+    {
+        if (alcWeakReference is null)
+        {
+            return true;
+        }
+
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            if (!alcWeakReference.IsAlive)
+            {
+                return true;
+            }
+
+            Thread.Sleep(delayMs);
+        }
+
+        return !alcWeakReference.IsAlive;
+    }
+
+    private bool UnloadAndWait(int maxAttempts = 50, int delayMs = 100)
+    {
+        var alcWeakReference = BeginUnload();
+        var unloaded = WaitForUnload(alcWeakReference, maxAttempts, delayMs);
+        if (unloaded)
+        {
+            _alcWeakReference = null;
+        }
+
+        return unloaded;
+    }
+
+    public void Unload()
+    {
+        _ = UnloadAndWait();
     }
 }

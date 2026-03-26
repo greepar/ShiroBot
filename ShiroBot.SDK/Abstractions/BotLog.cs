@@ -5,13 +5,13 @@ namespace ShiroBot.SDK.Abstractions;
 public static class BotLog
 {
     private static readonly AsyncLocal<IConsoleLogger?> CurrentLogger = new();
-    private static IConsoleLogger _defaultLogger = new NullConsoleLogger();
+    private static IConsoleLogger _defaultLogger = new DefaultLogger();
 
-    public static IConsoleLogger Logger => CurrentLogger.Value ?? _defaultLogger;
+    private static IConsoleLogger Logger => CurrentLogger.Value ?? _defaultLogger;
 
     public static void SetDefault(IConsoleLogger logger)
     {
-        _defaultLogger = logger ?? new NullConsoleLogger();
+        _defaultLogger = logger;
     }
 
     public static IDisposable BeginScope(IConsoleLogger? logger)
@@ -56,14 +56,14 @@ public static class BotLog
         public void Dispose() => onDispose();
     }
 
-    private sealed class NullConsoleLogger : IConsoleLogger
+    private sealed class DefaultLogger : IConsoleLogger
     {
         public bool IsEnabled { get; set; } = true;
 
-        public void Log(string message) { }
-        public void Info(string message) { }
-        public void Success(string message) { }
-        public void Warning(string message) { }
-        public void Error(string message) { }
+        void IConsoleLogger.Log(string message) { }
+        void IConsoleLogger.Info(string message) { }
+        void IConsoleLogger.Success(string message) { }
+        void IConsoleLogger.Warning(string message) { }
+        void IConsoleLogger.Error(string message) { }
     }
 }

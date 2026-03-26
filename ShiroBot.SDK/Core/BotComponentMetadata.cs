@@ -1,4 +1,4 @@
-namespace ShiroBot.SDK;
+namespace ShiroBot.SDK.Core;
 
 public sealed class BotComponentMetadata
 {

@@ -12,7 +12,6 @@ public static class ConsoleHelper
     private static readonly List<string> History = [];
 
     private static IReadOnlyList<ConsoleCommandOption>? _completionOptions;
-    private static bool _isEnabled = true;
     private static bool _isReadingInput;
     private static string? _activePrompt;
     private static int _cursorIndex;
@@ -21,11 +20,7 @@ public static class ConsoleHelper
     private static int _inputTop;
     private static string _inlineCompletionSuffix = string.Empty;
 
-    public static bool IsEnabled
-    {
-        get => _isEnabled;
-        set => _isEnabled = value;
-    }
+    public static bool IsEnabled { get; set; } = true;
 
     public static void Log(string message) => WriteLine(message, ConsoleColor.Gray);
 
@@ -309,7 +304,7 @@ public static class ConsoleHelper
 
     private static void WriteLine(string message, ConsoleColor color)
     {
-        if (!_isEnabled)
+        if (!IsEnabled)
         {
             return;
         }

@@ -244,9 +244,11 @@ public sealed class MyAdapter : IBotAdapter
 }
 ```
 
-adapter 配置文件路径固定在：
+adapter 支持两种部署方式：
 
-`adapters/<AdapterFolder>/config.toml`
+`adapters/<AdapterName>.dll` + `adapters/<AdapterName>.toml`
+
+`adapters/<AdapterFolder>/<AdapterFolder>.dll` + `adapters/<AdapterFolder>/config.toml`
 
 ### Adapter 配置热重载
 

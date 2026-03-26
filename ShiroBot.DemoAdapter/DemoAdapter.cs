@@ -2,6 +2,7 @@ using ShiroBot.DemoAdapter.AdapterImpl;
 using ShiroBot.SDK;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Config;
+using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 
 namespace ShiroBot.DemoAdapter;

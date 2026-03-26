@@ -1,8 +1,6 @@
 using System.Text.Json;
-using ShiroBot.SDK;
 using ShiroBot.SDK.Abstractions;
 using Tomlyn;
-using CH = ShiroBot.Core.ConsoleHelper;
 
 namespace ShiroBot.Core;
 
@@ -14,6 +12,10 @@ public class CoreConfig
     public bool EnableLog { get; set; } = true;
 
     public bool DisableConsoleInput { get; set; } = false;
+
+    public long[] OwnerList { get; set; } = [];
+
+    public long[] AdminList { get; set; } = [];
 
     public PluginRouteConfig PluginRoutes { get; set; } = new()
     {
@@ -44,9 +46,9 @@ public class PluginRouteConfig
 
 public class PluginRouteRuleConfig
 {
-    public string Mode { get; set; } = "whitelist";
+    public string Mode { get; init; } = "whitelist";
 
-    public long[] Groups { get; set; } = [];
+    public long[] Groups { get; init; } = [];
 
     public bool IsMatch(long groupId)
     {
@@ -116,6 +118,33 @@ public class ConfigManager(string? coreConfigPath = null)
         return LoadScopedConfig<T>(adapterDirectory, "适配器目录");
     }
 
+    public T? LoadConfig<T>(string configPath, string scopeName) where T : class, new()
+    {
+        try
+        {
+            var normalizedConfigPath = Path.GetFullPath(configPath);
+            var directory = Path.GetDirectoryName(normalizedConfigPath)
+                            ?? throw new InvalidOperationException($"无法解析配置文件目录: {normalizedConfigPath}");
+
+            Directory.CreateDirectory(directory);
+            if (!File.Exists(normalizedConfigPath))
+            {
+                var newConfig = Activator.CreateInstance<T>();
+                ConsoleHelper.Warning($"未找到{scopeName}配置文件 {normalizedConfigPath}，已生成默认配置，请前往配置。");
+                SaveToml(normalizedConfigPath, newConfig, _options);
+                return newConfig;
+            }
+
+            var toml = File.ReadAllText(normalizedConfigPath);
+            var config = TomlSerializer.Deserialize<T>(toml, _options);
+            return config;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"加载{scopeName}配置时出错: {configPath} - {ex.Message}", ex);
+        }
+    }
+
     public void SavePluginConfig<T>(string pluginDirectory, T config) where T : class
     {
         SaveScopedConfig(pluginDirectory, config);
@@ -128,31 +157,17 @@ public class ConfigManager(string? coreConfigPath = null)
 
     public T? LoadScopedConfig<T>(string directory, string scopeName) where T : class, new()
     {
-        var configPath = Path.Combine(directory, "config.toml");
-        try
-        {
-            Directory.CreateDirectory(directory);
-            if (!File.Exists(configPath))
-            {
-                var newConfig = Activator.CreateInstance<T>();
-                ConsoleHelper.Warning($"未找到{scopeName} {directory} 的配置文件，已生成默认配置文件 config.toml。");
-                var tomlString = TomlSerializer.Serialize(newConfig, _options);
-                File.WriteAllText(configPath, tomlString);
-                return newConfig;
-            }
-            var toml = File.ReadAllText(configPath);
-            var config = TomlSerializer.Deserialize<T>(toml, _options);
-            return config;
-        }
-        catch (Exception ex)
-        {
-            throw new Exception($"加载{scopeName} {directory} 配置时出错: {ex.Message}", ex);
-        }
+        return LoadConfig<T>(Path.Combine(directory, "config.toml"), scopeName);
     }
 
     public void SaveScopedConfig<T>(string directory, T config) where T : class
     {
-        SaveToml(Path.Combine(directory, "config.toml"), config, _options);
+        SaveConfig(Path.Combine(directory, "config.toml"), config);
+    }
+
+    public void SaveConfig<T>(string configPath, T config) where T : class
+    {
+        SaveToml(configPath, config, _options);
     }
 
     private static void SaveToml<T>(string configPath, T config, TomlSerializerOptions options) where T : class

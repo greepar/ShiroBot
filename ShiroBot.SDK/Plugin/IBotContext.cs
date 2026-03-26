@@ -9,6 +9,11 @@ public interface IBotContext
     public IGroupContext Group { get; }
     public IMessageContext Message { get;  }  
     public ISystemContext System { get; }
-    public IEventContext Event { get; }
     public IConfigContext Config { get; }
+    public IReadOnlyList<long> OwnerList { get; }
+    public IReadOnlyList<long> AdminList { get; }
+
+    public bool IsOwner(long userId) => OwnerList.Contains(userId);
+
+    public bool IsAdmin(long userId) => IsOwner(userId) || AdminList.Contains(userId);
 }

@@ -1,67 +1,72 @@
 using ShiroBot.Model.Common;
 using ShiroBot.SDK;
 using ShiroBot.SDK.Abstractions;
+using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 
 namespace ShiroBot.DemoPlugin;
 
 public sealed class DemoPlugin : PluginBase
 {
-    private DemoPluginConfig _config = new();
-    private IDisposable? _configWatcher;
-
     public override string Name => "DemoPlugin";
     public override BotComponentMetadata Metadata { get; } = new()
     {
-        Name = "DemoPlugin",
+        Name = "标准示例插件",
         Version = "1.0.0",
-        Description = "标准示例插件"
+        Description = "这是一个 ShiroBot 插件开发的标准示例，展示了插件的基本结构和功能。"
     };
 
-    protected override Task OnLoadAsync(IBotContext context)
+    protected override async Task OnLoadAsync(IBotContext context)
     {
-        _config = context.Config.Load<DemoPluginConfig>();
-        context.Config.Save(_config);
-
-        if (_config.EnableHotReload)
-        {
-            _configWatcher = context.Config.Watch<DemoPluginConfig>(updated =>
-            {
-                _config = updated;
-                BotLog.Info($"插件 {Name} 配置已热重载: {context.Config.ConfigPath}");
-            });
-        }
-
-        if (_config.SendStartupHello)
-        {
-            BotLog.Info("标准示例插件已加载。");
-        }
-
-        FriendCommands.Map("#help", HandleHelpAsync);
-        FriendCommands.Map("#ping", HandlePingAsync);
-        GroupCommands.Map("#help", HandleHelpAsync);
-        GroupCommands.Map("#ping", HandlePingAsync);
-
-        return Task.CompletedTask;
+        FriendCommands.MapExact("#help", HandleFriendHelpAsync);
+        FriendCommands.MapExact("#ping", HandleFriendPingAsync);
+        FriendCommands.MapPrefix("#echo", HandleFriendEchoAsync);
+        // GroupCommands.Map("#help", HandleGroupHelpAsync);
+        // GroupCommands.Map("#ping", HandleGroupPingAsync);
+        // GroupCommands.Map("#echo", HandleGroupEchoAsync);
+        var loginInfo = await context.System.GetLoginInfoAsync();
+        BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
+        BotLog.Info("标准示例插件已加载。");
     }
 
     protected override Task OnUnloadAsync()
     {
-        _configWatcher?.Dispose();
-        _configWatcher = null;
         BotLog.Info("标准示例插件已卸载。");
         return Task.CompletedTask;
     }
 
-    private Task HandleHelpAsync(FriendIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping");
+    private Task HandleFriendHelpAsync(FriendIncomingMessage message) =>
+        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping, #echo <内容>");
 
-    private Task HandlePingAsync(FriendIncomingMessage message) =>
+    private Task HandleFriendPingAsync(FriendIncomingMessage message) =>
         Context.Message.ReplyTextAsync(message, "pong");
 
-    private Task HandleHelpAsync(GroupIncomingMessage message) =>
-        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping");
+    private Task HandleFriendEchoAsync(FriendIncomingMessage message)
+    {
+        var content = ExtractEchoContent(message.GetPlainText());
+        return Context.Message.ReplyTextAsync(message, $"你说了: {content}");
+    }
 
-    private Task HandlePingAsync(GroupIncomingMessage message) =>
+    private Task HandleGroupHelpAsync(GroupIncomingMessage message) =>
+        Context.Message.ReplyTextAsync(message, "可用命令: #help, #ping, #echo <内容>");
+
+    private Task HandleGroupPingAsync(GroupIncomingMessage message) =>
         Context.Message.ReplyTextAsync(message, "pong");
+
+    private Task HandleGroupEchoAsync(GroupIncomingMessage message)
+    {
+        var content = ExtractEchoContent(message.GetPlainText());
+        return Context.Message.ReplyTextAsync(message, $"你说了: {content}");
+    }
+
+    private static string ExtractEchoContent(string text)
+    {
+        var trimmed = text.Trim();
+        if (trimmed.Length <= "#echo".Length)
+        {
+            return string.Empty;
+        }
+
+        return trimmed["#echo".Length..].TrimStart();
+    }
 }

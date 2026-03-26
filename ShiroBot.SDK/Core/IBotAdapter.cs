@@ -2,7 +2,7 @@
 using ShiroBot.SDK.Config;
 using ShiroBot.SDK.Plugin;
 
-namespace ShiroBot.SDK;
+namespace ShiroBot.SDK.Core;
 
 public interface IBotAdapter
 {
@@ -18,5 +18,4 @@ public interface IBotAdapter
     public IEventService Event { get; }
 
     Task StartAsync();
-    Task StopAsync() => Task.CompletedTask;
 }
