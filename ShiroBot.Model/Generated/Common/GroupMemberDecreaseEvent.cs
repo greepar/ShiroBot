@@ -7,4 +7,4 @@ public sealed partial record GroupMemberDecreaseEvent(
     long SelfId,
     long GroupId,
     long UserId,
-    long? OperatorId) : Event;
+    long? OperatorId = null) : Event;

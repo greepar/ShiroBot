@@ -8,5 +8,5 @@ public sealed partial record RejectGroupRequestRequest(
     long NotificationSeq,
     RejectGroupRequestRequestNotificationType NotificationType,
     long GroupId,
-    bool IsFiltered,
-    string? Reason);
+    bool IsFiltered = false,
+    string? Reason = null);

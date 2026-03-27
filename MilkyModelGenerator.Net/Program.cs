@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using System.Globalization;
 
 var options = GeneratorOptions.Parse(args);
 
@@ -301,8 +302,7 @@ static void GenerateSimpleStruct(
         GenerateEnum(generatedDir, area, enumDefinition, options);
     }
 
-    var members = fields
-        .OfType<JsonObject>()
+    var members = OrderFieldsForCtor(fields)
         .Select(field => RenderCtorParameter(name, field))
         .ToList();
 
@@ -439,7 +439,104 @@ static string RenderCtorParameter(string ownerName, JsonObject field)
 {
     var type = ResolveFieldType(ownerName, field);
     var name = SnakeToPascal(field["name"]?.GetValue<string>() ?? "Unknown");
-    return $"{type} {name}";
+    var defaultValue = RenderDefaultValue(ownerName, field);
+    return defaultValue is null
+        ? $"{type} {name}"
+        : $"{type} {name} = {defaultValue}";
+}
+
+static IReadOnlyList<JsonObject> OrderFieldsForCtor(JsonArray fields)
+{
+    return fields
+        .OfType<JsonObject>()
+        .Select((field, index) => new
+        {
+            Field = field,
+            Index = index,
+            IsOptional = IsCtorOptional(field)
+        })
+        .OrderBy(item => item.IsOptional)
+        .ThenBy(item => item.Index)
+        .Select(item => item.Field)
+        .ToArray();
+}
+
+static bool IsCtorOptional(JsonObject field)
+{
+    if (field["isOptional"]?.GetValue<bool>() == true)
+    {
+        return true;
+    }
+
+    return field.ContainsKey("defaultValue");
+}
+
+static string? RenderDefaultValue(string ownerName, JsonObject field)
+{
+    if (!field.TryGetPropertyValue("defaultValue", out var defaultNode))
+    {
+        return field["isOptional"]?.GetValue<bool>() == true ? "null" : null;
+    }
+
+    if (defaultNode is null)
+    {
+        return "null";
+    }
+
+    var fieldType = field["fieldType"]?.GetValue<string>() ?? "scalar";
+    var scalarType = field["scalarType"]?.GetValue<string>() ?? "string";
+    var isArray = field["isArray"]?.GetValue<bool>() ?? false;
+
+    if (isArray)
+    {
+        return defaultNode is JsonArray array && array.Count == 0 ? "[]" : null;
+    }
+
+    return fieldType switch
+    {
+        "scalar" => RenderScalarDefaultValue(defaultNode, scalarType),
+        "enum" => RenderEnumDefaultValue(ownerName, field, defaultNode),
+        "ref" => "null",
+        _ => null
+    };
+}
+
+static string? RenderScalarDefaultValue(JsonNode defaultNode, string scalarType)
+{
+    return scalarType switch
+    {
+        "bool" or "boolean" => defaultNode.GetValue<bool>() ? "true" : "false",
+        "int32" => defaultNode.GetValue<int>().ToString(CultureInfo.InvariantCulture),
+        "int64" => defaultNode.GetValue<long>().ToString(CultureInfo.InvariantCulture),
+        "float32" => $"{defaultNode.GetValue<float>().ToString(CultureInfo.InvariantCulture)}f",
+        "float64" => defaultNode.GetValue<double>().ToString(CultureInfo.InvariantCulture),
+        "string" => ToCSharpStringLiteral(defaultNode.GetValue<string>()),
+        _ => null
+    };
+}
+
+static string? RenderEnumDefaultValue(string ownerName, JsonObject field, JsonNode defaultNode)
+{
+    if (defaultNode is not JsonValue)
+    {
+        return null;
+    }
+
+    var enumTypeName = $"{ownerName}{SnakeToPascal(field["name"]?.GetValue<string>() ?? "Unknown")}";
+    var enumMemberRaw = defaultNode.GetValue<string>();
+    return $"{enumTypeName}.{MakeEnumMemberName(enumMemberRaw, new HashSet<string>(StringComparer.Ordinal))}";
+}
+
+static string ToCSharpStringLiteral(string value)
+{
+    var escaped = value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("\"", "\\\"", StringComparison.Ordinal)
+        .Replace("\r", "\\r", StringComparison.Ordinal)
+        .Replace("\n", "\\n", StringComparison.Ordinal)
+        .Replace("\t", "\\t", StringComparison.Ordinal);
+
+    return $"\"{escaped}\"";
 }
 
 static string ResolveFieldType(string ownerName, JsonObject field)

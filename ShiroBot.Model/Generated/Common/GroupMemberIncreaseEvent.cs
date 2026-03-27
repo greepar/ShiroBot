@@ -7,5 +7,5 @@ public sealed partial record GroupMemberIncreaseEvent(
     long SelfId,
     long GroupId,
     long UserId,
-    long? OperatorId,
-    long? InvitorId) : Event;
+    long? OperatorId = null,
+    long? InvitorId = null) : Event;

@@ -5,6 +5,6 @@ using ShiroBot.Model.Common;
 namespace ShiroBot.Model.Group.Requests;
 
 public sealed partial record GetGroupNotificationsRequest(
-    long? StartNotificationSeq,
-    bool IsFiltered,
-    int Limit);
+    long? StartNotificationSeq = null,
+    bool IsFiltered = false,
+    int Limit = 20);

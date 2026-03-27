@@ -7,4 +7,4 @@ namespace ShiroBot.Model.Group.Requests;
 public sealed partial record KickGroupMemberRequest(
     long GroupId,
     long UserId,
-    bool RejectAddRequest);
+    bool RejectAddRequest = false);

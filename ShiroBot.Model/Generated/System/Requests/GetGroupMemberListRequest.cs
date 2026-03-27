@@ -6,4 +6,4 @@ namespace ShiroBot.Model.System.Requests;
 
 public sealed partial record GetGroupMemberListRequest(
     long GroupId,
-    bool NoCache);
+    bool NoCache = false);

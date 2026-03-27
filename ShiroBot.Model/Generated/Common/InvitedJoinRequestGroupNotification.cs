@@ -8,4 +8,4 @@ public sealed partial record InvitedJoinRequestGroupNotification(
     long InitiatorId,
     long TargetUserId,
     InvitedJoinRequestGroupNotificationState State,
-    long? OperatorId) : GroupNotification;
+    long? OperatorId = null) : GroupNotification;

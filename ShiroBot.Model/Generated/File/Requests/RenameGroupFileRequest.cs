@@ -7,5 +7,5 @@ namespace ShiroBot.Model.File.Requests;
 public sealed partial record RenameGroupFileRequest(
     long GroupId,
     string FileId,
-    string ParentFolderId,
-    string NewFileName);
+    string NewFileName,
+    string ParentFolderId = "/");

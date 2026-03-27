@@ -5,5 +5,5 @@ using ShiroBot.Model.Common;
 namespace ShiroBot.Model.Friend.Requests;
 
 public sealed partial record GetFriendRequestsRequest(
-    int Limit,
-    bool IsFiltered);
+    int Limit = 20,
+    bool IsFiltered = false);

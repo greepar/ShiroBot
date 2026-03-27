@@ -9,6 +9,6 @@ public sealed partial record GroupFileEntity(
     string ParentFolderId,
     long FileSize,
     long UploadedTime,
-    long? ExpireTime,
     long UploaderId,
-    int DownloadedTimes);
+    int DownloadedTimes,
+    long? ExpireTime = null);

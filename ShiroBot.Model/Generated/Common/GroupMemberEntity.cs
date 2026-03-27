@@ -13,4 +13,4 @@ public sealed partial record GroupMemberEntity(
     GroupMemberEntityRole Role,
     long JoinTime,
     long LastSentTime,
-    long? ShutUpEndTime);
+    long? ShutUpEndTime = null);

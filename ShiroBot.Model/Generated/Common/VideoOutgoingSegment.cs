@@ -4,4 +4,4 @@ namespace ShiroBot.Model.Common;
 
 public sealed partial record VideoOutgoingSegment(
     string Uri,
-    string? ThumbUri) : OutgoingSegment;
+    string? ThumbUri = null) : OutgoingSegment;

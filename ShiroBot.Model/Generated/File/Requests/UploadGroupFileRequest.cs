@@ -6,6 +6,6 @@ namespace ShiroBot.Model.File.Requests;
 
 public sealed partial record UploadGroupFileRequest(
     long GroupId,
-    string ParentFolderId,
     string FileUri,
-    string FileName);
+    string FileName,
+    string ParentFolderId = "/");

@@ -7,4 +7,4 @@ namespace ShiroBot.Model.Group.Requests;
 public sealed partial record SendGroupAnnouncementRequest(
     long GroupId,
     string Content,
-    string? ImageUri);
+    string? ImageUri = null);

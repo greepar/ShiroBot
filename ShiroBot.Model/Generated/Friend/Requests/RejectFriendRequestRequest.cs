@@ -6,5 +6,5 @@ namespace ShiroBot.Model.Friend.Requests;
 
 public sealed partial record RejectFriendRequestRequest(
     string InitiatorUid,
-    bool IsFiltered,
-    string? Reason);
+    bool IsFiltered = false,
+    string? Reason = null);

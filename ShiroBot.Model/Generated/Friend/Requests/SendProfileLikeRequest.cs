@@ -6,4 +6,4 @@ namespace ShiroBot.Model.Friend.Requests;
 
 public sealed partial record SendProfileLikeRequest(
     long UserId,
-    int Count);
+    int Count = 1);

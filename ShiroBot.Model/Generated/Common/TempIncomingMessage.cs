@@ -10,4 +10,4 @@ public sealed partial record TempIncomingMessage(
     long SenderId,
     long Time,
     IReadOnlyList<IncomingSegment> Segments,
-    GroupEntity? Group) : Event, IncomingMessage;
+    GroupEntity? Group = null) : Event, IncomingMessage;

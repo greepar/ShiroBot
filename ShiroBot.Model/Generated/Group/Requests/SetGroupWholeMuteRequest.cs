@@ -6,4 +6,4 @@ namespace ShiroBot.Model.Group.Requests;
 
 public sealed partial record SetGroupWholeMuteRequest(
     long GroupId,
-    bool IsMute);
+    bool IsMute = true);

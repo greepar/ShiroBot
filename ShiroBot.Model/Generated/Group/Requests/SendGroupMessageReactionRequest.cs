@@ -8,4 +8,4 @@ public sealed partial record SendGroupMessageReactionRequest(
     long GroupId,
     long MessageSeq,
     string Reaction,
-    bool IsAdd);
+    bool IsAdd = true);

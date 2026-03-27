@@ -8,5 +8,5 @@ public sealed partial record JoinRequestGroupNotification(
     bool IsFiltered,
     long InitiatorId,
     JoinRequestGroupNotificationState State,
-    long? OperatorId,
-    string Comment) : GroupNotification;
+    string Comment,
+    long? OperatorId = null) : GroupNotification;

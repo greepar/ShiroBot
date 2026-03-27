@@ -7,4 +7,4 @@ namespace ShiroBot.Model.Group.Requests;
 public sealed partial record SetGroupMemberAdminRequest(
     long GroupId,
     long UserId,
-    bool IsSet);
+    bool IsSet = true);

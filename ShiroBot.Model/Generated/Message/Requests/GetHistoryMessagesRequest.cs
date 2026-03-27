@@ -7,5 +7,5 @@ namespace ShiroBot.Model.Message.Requests;
 public sealed partial record GetHistoryMessagesRequest(
     GetHistoryMessagesRequestMessageScene MessageScene,
     long PeerId,
-    long? StartMessageSeq,
-    int Limit);
+    long? StartMessageSeq = null,
+    int Limit = 20);

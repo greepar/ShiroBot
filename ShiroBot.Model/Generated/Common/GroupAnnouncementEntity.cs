@@ -8,4 +8,4 @@ public sealed partial record GroupAnnouncementEntity(
     long UserId,
     long Time,
     string Content,
-    string? ImageUrl);
+    string? ImageUrl = null);

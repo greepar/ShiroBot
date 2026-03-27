@@ -6,4 +6,4 @@ namespace ShiroBot.Model.File.Requests;
 
 public sealed partial record GetGroupFilesRequest(
     long GroupId,
-    string ParentFolderId);
+    string ParentFolderId = "/");

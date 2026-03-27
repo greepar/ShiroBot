@@ -6,4 +6,4 @@ namespace ShiroBot.Model.Friend.Requests;
 
 public sealed partial record SendFriendNudgeRequest(
     long UserId,
-    bool IsSelf);
+    bool IsSelf = false);

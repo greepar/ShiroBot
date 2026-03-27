@@ -7,4 +7,4 @@ namespace ShiroBot.Model.Group.Requests;
 public sealed partial record SetGroupMemberMuteRequest(
     long GroupId,
     long UserId,
-    int Duration);
+    int Duration = 0);

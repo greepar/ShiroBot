@@ -6,4 +6,4 @@ public sealed partial record FileIncomingSegment(
     string FileId,
     string FileName,
     long FileSize,
-    string? FileHash) : IncomingSegment;
+    string? FileHash = null) : IncomingSegment;

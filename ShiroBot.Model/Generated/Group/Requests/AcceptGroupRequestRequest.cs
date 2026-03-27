@@ -8,4 +8,4 @@ public sealed partial record AcceptGroupRequestRequest(
     long NotificationSeq,
     AcceptGroupRequestRequestNotificationType NotificationType,
     long GroupId,
-    bool IsFiltered);
+    bool IsFiltered = false);

@@ -6,4 +6,4 @@ namespace ShiroBot.Model.System.Requests;
 
 public sealed partial record GetFriendInfoRequest(
     long UserId,
-    bool NoCache);
+    bool NoCache = false);

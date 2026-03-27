@@ -7,5 +7,5 @@ namespace ShiroBot.Model.File.Requests;
 public sealed partial record MoveGroupFileRequest(
     long GroupId,
     string FileId,
-    string ParentFolderId,
-    string TargetFolderId);
+    string ParentFolderId = "/",
+    string TargetFolderId = "/");
