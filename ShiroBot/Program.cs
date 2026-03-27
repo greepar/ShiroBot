@@ -4,9 +4,11 @@ using System.Text;
 using ShiroBot.Core;
 using ShiroBot.Hosting;
 using ShiroBot.Hosting.Context;
+using ShiroBot.Model.Common;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Abstractions;
 using ShiroBot.SDK.Core;
+using ShiroBot.SDK.Plugin;
 using CH = ShiroBot.Core.ConsoleHelper;
 
 namespace ShiroBot;
@@ -117,17 +119,26 @@ public static class Program
             }
             CH.Success("加载适配器成功: " + adapter.Name);
             
+            var botContext = new BotContext(adapter, coreConfig.OwnerList, coreConfig.AdminList);
             var hostEventDispatcher = new HostEventDispatcher(pluginLifecycleLock);
-            BridgeAdapterEvents(adapter.Event, hostEventDispatcher);
             
             //get plugin folder
             var pluginRoot = NormalizeOptionalPath(parserResult.GetValue(pluginOption))
                 ?? Path.Combine(AppContext.BaseDirectory, "plugins");
             if (!Directory.Exists(pluginRoot)) Directory.CreateDirectory(pluginRoot);
 
+            BridgeAdapterEvents(
+                adapter.Event,
+                hostEventDispatcher,
+                botContext,
+                pluginRoot,
+                groupRoutePolicy,
+                loadedPlugins,
+                pluginLifecycleLock,
+                pluginUnloadSemaphore);
+
             CH.Info("开始加载插件...");
 
-            var botContext = new BotContext(adapter, coreConfig.OwnerList, coreConfig.AdminList);
             await LoadPluginsAsync(
                 EnumeratePluginEntryAssemblies(pluginRoot).ToList(),
                 pluginRoot,
@@ -433,10 +444,27 @@ public static class Program
         }
     }
 
-    private static void BridgeAdapterEvents(IEventService eventService, HostEventDispatcher eventSink)
+    private static void BridgeAdapterEvents(
+        IEventService eventService,
+        HostEventDispatcher eventSink,
+        BotContext botContext,
+        string pluginRoot,
+        PluginRouteConfig routePolicy,
+        List<LoadedPluginHandle> loadedPlugins,
+        Lock pluginLifecycleLock,
+        SemaphoreSlim pluginLifecycleSemaphore)
     {
         eventService.GroupMessageReceived += eventSink.PublishGroupMessageAsync;
-        eventService.FriendMessageReceived += eventSink.PublishFriendMessageAsync;
+        eventService.FriendMessageReceived += message =>
+            HandleFriendMessageAsync(
+                message,
+                eventSink,
+                botContext,
+                pluginRoot,
+                routePolicy,
+                loadedPlugins,
+                pluginLifecycleLock,
+                pluginLifecycleSemaphore);
         eventService.MessageRecall += eventSink.PublishMessageRecallAsync;
         eventService.FriendRequest += eventSink.PublishFriendRequestAsync;
         eventService.GroupJoinRequest += eventSink.PublishGroupJoinRequestAsync;
@@ -454,6 +482,134 @@ public static class Program
         eventService.GroupWholeMute += eventSink.PublishGroupWholeMuteAsync;
         eventService.GroupNudge += eventSink.PublishGroupNudgeAsync;
         eventService.GroupFileUpload += eventSink.PublishGroupFileUploadAsync;
+    }
+
+    private static async Task HandleFriendMessageAsync(
+        FriendIncomingMessage message,
+        HostEventDispatcher eventSink,
+        BotContext botContext,
+        string pluginRoot,
+        PluginRouteConfig routePolicy,
+        List<LoadedPluginHandle> loadedPlugins,
+        Lock pluginLifecycleLock,
+        SemaphoreSlim pluginLifecycleSemaphore)
+    {
+        if (await TryHandleHostPrivateCommandAsync(
+                message,
+                botContext,
+                pluginRoot,
+                routePolicy,
+                loadedPlugins,
+                pluginLifecycleLock,
+                pluginLifecycleSemaphore,
+                eventSink))
+        {
+            return;
+        }
+
+        await eventSink.PublishFriendMessageAsync(message);
+    }
+
+    private static async Task<bool> TryHandleHostPrivateCommandAsync(
+        FriendIncomingMessage message,
+        BotContext botContext,
+        string pluginRoot,
+        PluginRouteConfig routePolicy,
+        List<LoadedPluginHandle> loadedPlugins,
+        Lock pluginLifecycleLock,
+        SemaphoreSlim pluginLifecycleSemaphore,
+        HostEventDispatcher hostEventDispatcher)
+    {
+        if (!botContext.OwnerList.Contains(message.SenderId))
+        {
+            return false;
+        }
+
+        var input = message.GetPlainText().Trim();
+        if (string.IsNullOrWhiteSpace(input) || !input.StartsWith('/'))
+        {
+            return false;
+        }
+
+        var splitInput = input.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
+        if (splitInput.Length == 0)
+        {
+            return false;
+        }
+
+        switch (splitInput[0].TrimStart('/').ToLowerInvariant())
+        {
+            case "help":
+            {
+                var orderedCommands = ConsoleCommands
+                    .OrderBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                var nameWidth = Math.Max(orderedCommands.Max(command => command.Name.Length), 8) + 2;
+                var helpText = new StringBuilder()
+                    .AppendLine("可用命令")
+                    .AppendLine(new string('-', 24));
+
+                foreach (var command in orderedCommands)
+                {
+                    helpText.Append("  ")
+                        .Append(command.Name.PadRight(nameWidth))
+                        .AppendLine(command.Description);
+                }
+
+                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment(helpText.ToString().TrimEnd()));
+                return true;
+            }
+            case "plugins":
+            {
+                var pluginNames = GetLoadedPluginNames(loadedPlugins, pluginLifecycleLock);
+                await botContext.Message.ReplyAsync(
+                    message,
+                    new TextOutgoingSegment(
+                        pluginNames.Count == 0
+                            ? "当前没有已加载插件。"
+                            : "已加载插件: " + string.Join(", ", pluginNames)));
+                return true;
+            }
+            case "plugin-load":
+            {
+                if (splitInput.Length < 2)
+                {
+                    await botContext.Message.ReplyAsync(message, new TextOutgoingSegment("用法: /plugin-load <插件名|dll路径>"));
+                    return true;
+                }
+
+                await ScheduleLoadPluginByName(
+                    pluginRoot,
+                    botContext,
+                    hostEventDispatcher,
+                    routePolicy,
+                    loadedPlugins,
+                    pluginLifecycleLock,
+                    pluginLifecycleSemaphore,
+                    splitInput[1]);
+                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment($"已加入热加载队列: {splitInput[1]}"));
+                return true;
+            }
+            case "plugin-unload":
+            {
+                if (splitInput.Length < 2)
+                {
+                    await botContext.Message.ReplyAsync(message, new TextOutgoingSegment("用法: /plugin-unload <插件名>"));
+                    return true;
+                }
+
+                await ScheduleUnloadPluginByName(
+                    hostEventDispatcher,
+                    loadedPlugins,
+                    pluginLifecycleLock,
+                    pluginLifecycleSemaphore,
+                    splitInput[1]);
+                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment($"已加入热卸载队列: {splitInput[1]}"));
+                return true;
+            }
+            default:
+                return false;
+        }
     }
 
     private static Task ScheduleUnloadPluginByName(

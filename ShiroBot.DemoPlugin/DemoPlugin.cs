@@ -28,8 +28,8 @@ public sealed class DemoPlugin : PluginBase
         // GroupCommands.Map("#help", HandleGroupHelpAsync);
         // GroupCommands.Map("#ping", HandleGroupPingAsync);
         // GroupCommands.Map("#echo", HandleGroupEchoAsync);
-        var loginInfo = await context.System.GetLoginInfoAsync();
-        BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
+        // var loginInfo = await context.System.GetLoginInfoAsync();
+        // BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
         BotLog.Info("标准示例插件已加载。");
     }
 
