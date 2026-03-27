@@ -1,6 +1,5 @@
 using ShiroBot.Core;
 using ShiroBot.Model.Common;
-using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Plugin;
 
 namespace ShiroBot.Hosting;
@@ -313,7 +312,7 @@ internal sealed class HostEventDispatcher(Lock pluginLifecycleLock)
             }
             catch (Exception ex)
             {
-                ConsoleHelper.Error($"插件事件分发失败: {plugin.Name} - {ex.Message}");
+                ConsoleHelper.Error($"插件功能执行失败: {plugin.Name} - {ex.Message}");
             }
         });
 
