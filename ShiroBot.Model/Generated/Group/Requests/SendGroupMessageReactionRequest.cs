@@ -8,4 +8,5 @@ public sealed partial record SendGroupMessageReactionRequest(
     long GroupId,
     long MessageSeq,
     string Reaction,
+    SendGroupMessageReactionRequestReactionType ReactionType = SendGroupMessageReactionRequestReactionType.Face,
     bool IsAdd = true);

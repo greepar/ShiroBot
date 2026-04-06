@@ -1,4 +1,4 @@
-# QBotSharp.Model
+# ShiroBot.Model
 
 `Generated/` contains code generated from Milky IR and may be overwritten.
 
@@ -17,6 +17,12 @@ To regenerate:
 
 ```powershell
 dotnet run --project .\MilkyModelGenerator.Net\MilkyModelGenerator.Net.csproj -- `
-  --output .\QBotSharp.Model\Generated `
-  --namespace QBotSharp.Model
+  --output .\ShiroBot.Model\Generated `
+  --namespace ShiroBot.Model
+```
+
+```bash
+dotnet run --project ./MilkyModelGenerator.Net/MilkyModelGenerator.Net.csproj -- \
+  --output ./ShiroBot.Model/Generated \
+  --namespace ShiroBot.Model
 ```

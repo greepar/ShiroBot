@@ -6,4 +6,9 @@ public sealed partial record GroupEntity(
     long GroupId,
     string GroupName,
     int MemberCount,
-    int MaxMemberCount);
+    int MaxMemberCount,
+    string Remark,
+    long CreatedTime,
+    string Description,
+    string Question,
+    string Announcement);

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 namespace ShiroBot.Model.Common;
 
 public sealed partial record IncomingForwardedMessage(
+    long MessageSeq,
     string SenderName,
     string AvatarUrl,
     long Time,

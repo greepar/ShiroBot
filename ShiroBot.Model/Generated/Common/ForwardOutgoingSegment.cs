@@ -5,4 +5,8 @@ using System.Collections.Generic;
 namespace ShiroBot.Model.Common;
 
 public sealed partial record ForwardOutgoingSegment(
-    IReadOnlyList<OutgoingForwardedMessage> Messages) : OutgoingSegment;
+    IReadOnlyList<OutgoingForwardedMessage> Messages,
+    string? Title = null,
+    IReadOnlyList<string>? Preview = null,
+    string? Summary = null,
+    string? Prompt = null) : OutgoingSegment;
