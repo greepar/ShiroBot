@@ -7,7 +7,7 @@ public interface IBotContext
     public IFileContext File { get; }
     public IFriendContext Friend { get; }
     public IGroupContext Group { get; }
-    public IMessageContext Message { get;  }  
+    public IMessageContext Message { get; }  
     public ISystemContext System { get; }
     public IConfigContext Config { get; }
     public IReadOnlyList<long> OwnerList { get; }

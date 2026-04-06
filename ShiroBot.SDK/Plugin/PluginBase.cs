@@ -9,7 +9,7 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     protected IBotContext Context { get; private set; } = null!;
     protected CommandRouter<GroupIncomingMessage> GroupCommands { get; } = new();
     protected CommandRouter<FriendIncomingMessage> FriendCommands { get; } = new();
-    public virtual BotEventSubscriptions Subscriptions => BotEventSubscriptions.None;
+    private static BotEventSubscriptions Subscriptions => BotEventSubscriptions.None;
     public virtual string Name => GetType().Name;
     public virtual BotComponentMetadata Metadata => new()
     {
@@ -20,7 +20,7 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     public async Task OnLoad(IBotContext context)
     {
         Context = context;
-        await OnLoadAsync(context);
+        await LoadAsync();
     }
 
     public async Task OnUnload()
@@ -31,7 +31,7 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         Context = null!;
     }
 
-    protected virtual Task OnLoadAsync(IBotContext context) => Task.CompletedTask;
+    protected virtual Task LoadAsync() => Task.CompletedTask;
     protected virtual Task OnUnloadAsync() => Task.CompletedTask;
 
     protected virtual async Task OnGroupMessageAsync(GroupIncomingMessage message)

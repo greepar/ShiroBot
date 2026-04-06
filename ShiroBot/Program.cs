@@ -556,7 +556,7 @@ public static class Program
                         .AppendLine(command.Description);
                 }
 
-                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment(helpText.ToString().TrimEnd()));
+                await botContext.Message.ReplyAsync(message, helpText.ToString().TrimEnd());
                 return true;
             }
             case "plugins":
@@ -564,17 +564,17 @@ public static class Program
                 var pluginNames = GetLoadedPluginNames(loadedPlugins, pluginLifecycleLock);
                 await botContext.Message.ReplyAsync(
                     message,
-                    new TextOutgoingSegment(
+                    
                         pluginNames.Count == 0
                             ? "当前没有已加载插件。"
-                            : "已加载插件: " + string.Join(", ", pluginNames)));
+                            : "已加载插件: " + string.Join(", ", pluginNames));
                 return true;
             }
             case "plugin-load":
             {
                 if (splitInput.Length < 2)
                 {
-                    await botContext.Message.ReplyAsync(message, new TextOutgoingSegment("用法: /plugin-load <插件名|dll路径>"));
+                    await botContext.Message.ReplyAsync(message, "用法: /plugin-load <插件名|dll路径>");
                     return true;
                 }
 
@@ -587,14 +587,14 @@ public static class Program
                     pluginLifecycleLock,
                     pluginLifecycleSemaphore,
                     splitInput[1]);
-                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment($"已加入热加载队列: {splitInput[1]}"));
+                await botContext.Message.ReplyAsync(message, $"已加入热加载队列: {splitInput[1]}");
                 return true;
             }
             case "plugin-unload":
             {
                 if (splitInput.Length < 2)
                 {
-                    await botContext.Message.ReplyAsync(message, new TextOutgoingSegment("用法: /plugin-unload <插件名>"));
+                    await botContext.Message.ReplyAsync(message, "用法: /plugin-unload <插件名>");
                     return true;
                 }
 
@@ -604,7 +604,7 @@ public static class Program
                     pluginLifecycleLock,
                     pluginLifecycleSemaphore,
                     splitInput[1]);
-                await botContext.Message.ReplyAsync(message, new TextOutgoingSegment($"已加入热卸载队列: {splitInput[1]}"));
+                await botContext.Message.ReplyAsync(message, $"已加入热卸载队列: {splitInput[1]}");
                 return true;
             }
             default:

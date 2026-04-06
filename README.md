@@ -16,6 +16,7 @@
 - `ShiroBot.SDK`: 插件与适配器开发 SDK
 - `ShiroBot.Model`: 共享模型
 - `ShiroBot.DemoPlugin`: 标准示例插件
+- `templates/ShiroBot.PluginTemplate`: 可复制插件模板
 - `ShiroBot.DemoAdapter`: 标准示例适配器
 
 ## 构建
@@ -23,6 +24,18 @@
 ```powershell
 dotnet build .\ShiroBot.slnx
 ```
+
+## 快速创建插件
+
+如果你想让别人基于示例插件快速复制并改名，不要直接复制 `ShiroBot.DemoPlugin`，而是使用模板目录：
+
+```bash
+./scripts/new-plugin.sh HelloPlugin 你好插件
+```
+
+执行后会自动生成一个新的插件目录，并替换项目名、类名、配置类名、命名空间和元数据占位符。
+
+如果对方不想跑脚本，也可以手动复制 `templates/ShiroBot.PluginTemplate` 并全局替换 `__PLUGIN_NAME__` 和 `__PLUGIN_DISPLAY_NAME__`。
 
 ## 许可证
 

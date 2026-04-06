@@ -15,8 +15,16 @@ public sealed class DemoPlugin : PluginBase
         Description = "这是一个 ShiroBot 插件开发的标准示例，展示了插件的基本结构和功能。"
     };
 
-    protected override async Task OnLoadAsync(IBotContext context)
+    protected override async Task LoadAsync()
     {
+        var config = Context.Config.Load<DemoPluginConfig>();
+        if (config.SendStartupHelloToOwner)
+        {
+            foreach (var id in Context.OwnerList)
+            {
+                await Context.Message.SendPrivateMessageAsync(id, "ShiroBot已启动.！");
+            }
+        }
         FriendCommands.MapExact("#help", HandleFriendHelpAsync);
         FriendCommands.MapExact("#ping", HandleFriendPingAsync);
         FriendCommands.MapPrefix("#echo", HandleFriendEchoAsync);
@@ -25,17 +33,16 @@ public sealed class DemoPlugin : PluginBase
             BotLog.Error("这是一个错误日志示例");
             await Context.Message.ReplyAsync(message, "服务器信息: ShiroBot Demo Server v1.0");
         });
-        // GroupCommands.Map("#help", HandleGroupHelpAsync);
-        // GroupCommands.Map("#ping", HandleGroupPingAsync);
-        // GroupCommands.Map("#echo", HandleGroupEchoAsync);
-        // var loginInfo = await context.System.GetLoginInfoAsync();
-        // BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
+        GroupCommands.Map("#help", HandleGroupHelpAsync);
+        GroupCommands.Map("#ping", HandleGroupPingAsync);
+        GroupCommands.Map("#echo", HandleGroupEchoAsync);
+        var loginInfo = await Context.System.GetLoginInfoAsync();
+        BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
         BotLog.Info("标准示例插件已加载。");
     }
 
     protected override Task OnUnloadAsync()
     {
-        
         BotLog.Info("标准示例插件已卸载。");
         return Task.CompletedTask;
     }

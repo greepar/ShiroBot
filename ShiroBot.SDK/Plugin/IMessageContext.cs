@@ -6,23 +6,29 @@ namespace ShiroBot.SDK.Plugin;
 
 public interface IMessageContext : IMessageService
 {
-    Task<SendPrivateMessageResponse> ReplyAsync(FriendIncomingMessage message, params OutgoingSegment[] segments) =>
-        SendPrivateMessageAsync(message.SenderId, segments);
+    Task<SendPrivateMessageResponse> SendPrivateMessageAsync(
+        long userId,
+        string text,
+        params OutgoingSegment[] additionalSegments) =>
+        SendPrivateMessageAsync(userId, BuildSegments(text, additionalSegments));
 
-    Task<SendGroupMessageResponse> ReplyAsync(GroupIncomingMessage message, params OutgoingSegment[] segments) =>
-        SendGroupMessageAsync(message.Group.GroupId, segments);
+    Task<SendGroupMessageResponse> SendGroupMessageAsync(
+        long groupId,
+        string text,
+        params OutgoingSegment[] additionalSegments) =>
+        SendGroupMessageAsync(groupId, BuildSegments(text, additionalSegments));
 
     Task<SendPrivateMessageResponse> ReplyAsync(
         FriendIncomingMessage message,
         string text,
         params OutgoingSegment[] additionalSegments) =>
-        ReplyAsync(message, BuildSegments(text, additionalSegments));
+        SendPrivateMessageAsync(message.SenderId, BuildSegments(text, additionalSegments));
 
     Task<SendGroupMessageResponse> ReplyAsync(
         GroupIncomingMessage message,
         string text,
         params OutgoingSegment[] additionalSegments) =>
-        ReplyAsync(message, BuildSegments(text, additionalSegments));
+        SendGroupMessageAsync(message.Group.GroupId, BuildSegments(text, additionalSegments));
 
     private static OutgoingSegment[] BuildSegments(string text, IReadOnlyList<OutgoingSegment> additionalSegments)
     {
