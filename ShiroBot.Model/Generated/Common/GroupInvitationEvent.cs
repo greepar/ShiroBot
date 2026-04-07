@@ -7,4 +7,5 @@ public sealed partial record GroupInvitationEvent(
     long SelfId,
     long GroupId,
     long InvitationSeq,
-    long InitiatorId) : Event;
+    long InitiatorId,
+    long? SourceGroupId = null) : Event;

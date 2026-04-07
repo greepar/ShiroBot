@@ -92,8 +92,8 @@ public interface IGroupService
     Task SendGroupMessageReactionAsync(SendGroupMessageReactionRequest request)
         => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupMessageReactionAsync)}'.");
 
-    Task SendGroupMessageReactionAsync(long groupId, long messageSeq, string reaction, bool isAdd = true)
-        => SendGroupMessageReactionAsync(new SendGroupMessageReactionRequest(groupId, messageSeq, reaction, isAdd));
+    Task SendGroupMessageReactionAsync(long groupId, long messageSeq, string reaction, SendGroupMessageReactionRequestReactionType type = SendGroupMessageReactionRequestReactionType.Face ,bool isAdd = true)
+        => SendGroupMessageReactionAsync(new SendGroupMessageReactionRequest(groupId, messageSeq,reaction,type,isAdd));
 
     Task SendGroupNudgeAsync(SendGroupNudgeRequest request)
         => throw new NotSupportedException($"Current adapter does not support '{nameof(SendGroupNudgeAsync)}'.");

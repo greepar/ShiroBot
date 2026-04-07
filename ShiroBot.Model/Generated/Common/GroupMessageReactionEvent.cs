@@ -9,4 +9,5 @@ public sealed partial record GroupMessageReactionEvent(
     long UserId,
     long MessageSeq,
     string FaceId,
+    GroupMessageReactionEventReactionType ReactionType,
     bool IsAdd) : Event;
