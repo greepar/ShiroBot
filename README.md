@@ -27,7 +27,7 @@ dotnet build .\ShiroBot.slnx
 
 ## 快速创建插件
 
-如果你想让别人基于示例插件快速复制并改名，不要直接复制 `ShiroBot.DemoPlugin`，而是使用模板目录：
+基于模版插件(DemoPlugin)生成：
 
 ```bash
 ./scripts/new-plugin.sh HelloPlugin 你好插件
@@ -35,7 +35,7 @@ dotnet build .\ShiroBot.slnx
 
 执行后会自动生成一个新的插件目录，并替换项目名、类名、配置类名、命名空间和元数据占位符。
 
-如果对方不想跑脚本，也可以手动复制 `templates/ShiroBot.PluginTemplate` 并全局替换 `__PLUGIN_NAME__` 和 `__PLUGIN_DISPLAY_NAME__`。
+如果不想跑脚本，也可以手动复制 `templates/ShiroBot.PluginTemplate` 并全局替换 `__PLUGIN_NAME__` 和 `__PLUGIN_DISPLAY_NAME__`。
 
 ## 许可证
 
