@@ -8,18 +8,14 @@ namespace ShiroBot.Hosting.Context;
 
 public class MessageContext(IMessageService message) : IMessageContext
 {
-    public Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long uid, OutgoingSegment[] segments)
-    {
-        return message.SendPrivateMessageAsync(uid, segments);
-    }
+    public Task<SendPrivateMessageResponse> SendPrivateMessageAsync(SendPrivateMessageRequest request) =>
+        message.SendPrivateMessageAsync(request);
 
-    public Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId, OutgoingSegment[] segments)
-    {
-        return message.SendGroupMessageAsync(groupId, segments);
-    }
+    public Task<SendGroupMessageResponse> SendGroupMessageAsync(SendGroupMessageRequest request) =>
+        message.SendGroupMessageAsync(request);
 
-    public Task RecallPrivateMessageAsync(long userId,long messageSeq) =>
-        message.RecallPrivateMessageAsync(userId, messageSeq);
+    public Task RecallPrivateMessageAsync(RecallPrivateMessageRequest request) =>
+        message.RecallPrivateMessageAsync(request);
 
     public Task RecallGroupMessageAsync(RecallGroupMessageRequest request) =>
         message.RecallGroupMessageAsync(request);

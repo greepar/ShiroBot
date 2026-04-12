@@ -4,6 +4,14 @@ using System.Reflection;
 
 namespace ShiroBot.SDK.Plugin;
 
+public sealed record MessageRouteDescriptor(MessageRouteMatchType MatchType, string? Pattern);
+public enum MessageRouteMatchType
+{
+    Exact,
+    Prefix,
+    All
+}
+
 public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
 {
     protected IBotContext Context { get; private set; } = null!;

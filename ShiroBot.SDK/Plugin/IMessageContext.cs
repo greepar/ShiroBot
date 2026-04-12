@@ -1,4 +1,5 @@
 using ShiroBot.Model.Common;
+using ShiroBot.Model.Message.Requests;
 using ShiroBot.Model.Message.Responses;
 using ShiroBot.SDK.Adapter;
 
@@ -6,6 +7,12 @@ namespace ShiroBot.SDK.Plugin;
 
 public interface IMessageContext : IMessageService
 {
+    Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long userId, params OutgoingSegment[] segments) =>
+        SendPrivateMessageAsync(new SendPrivateMessageRequest(userId, segments));
+
+    Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId, params OutgoingSegment[] segments) =>
+        SendGroupMessageAsync(new SendGroupMessageRequest(groupId, segments));
+
     Task<SendPrivateMessageResponse> SendPrivateMessageAsync(
         long userId,
         string text,
@@ -29,6 +36,27 @@ public interface IMessageContext : IMessageService
         string text,
         params OutgoingSegment[] additionalSegments) =>
         SendGroupMessageAsync(message.Group.GroupId, BuildSegments(text, additionalSegments));
+
+    Task RecallPrivateMessageAsync(long userId, long messageSeq) =>
+        RecallPrivateMessageAsync(new RecallPrivateMessageRequest(userId, messageSeq));
+
+    Task RecallGroupMessageAsync(long groupId, long messageSeq) =>
+        RecallGroupMessageAsync(new RecallGroupMessageRequest(groupId, messageSeq));
+
+    Task<GetMessageResponse> GetMessageAsync(GetMessageRequestMessageScene messageScene, long peerId, long messageSeq) =>
+        GetMessageAsync(new GetMessageRequest(messageScene, peerId, messageSeq));
+
+    Task<GetHistoryMessagesResponse> GetHistoryMessagesAsync(GetHistoryMessagesRequestMessageScene messageScene, long peerId, long? startMessageSeq = null, int limit = 20) =>
+        GetHistoryMessagesAsync(new GetHistoryMessagesRequest(messageScene, peerId, startMessageSeq, limit));
+
+    Task<GetResourceTempUrlResponse> GetResourceTempUrlAsync(string resourceId) =>
+        GetResourceTempUrlAsync(new GetResourceTempUrlRequest(resourceId));
+
+    Task<GetForwardedMessagesResponse> GetForwardedMessagesAsync(string forwardId) =>
+        GetForwardedMessagesAsync(new GetForwardedMessagesRequest(forwardId));
+
+    Task MarkMessageAsReadAsync(MarkMessageAsReadRequestMessageScene messageScene, long peerId, long messageSeq) =>
+        MarkMessageAsReadAsync(new MarkMessageAsReadRequest(messageScene, peerId, messageSeq));
 
     private static OutgoingSegment[] BuildSegments(string text, IReadOnlyList<OutgoingSegment> additionalSegments)
     {

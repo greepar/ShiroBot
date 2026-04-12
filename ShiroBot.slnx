@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="ShiroBot.DemoAdapter/ShiroBot.DemoAdapter.csproj" />
   <Project Path="ShiroBot.DemoPlugin/ShiroBot.DemoPlugin.csproj" />
+  <Project Path="Shirobot.MilkyAdapter/ShiroBot.MilkyAdapter.csproj" />
   <Project Path="ShiroBot.Model/ShiroBot.Model.csproj" />
   <Project Path="ShiroBot.SDK/ShiroBot.SDK.csproj" />
   <Project Path="ShiroBot/ShiroBot.csproj" />

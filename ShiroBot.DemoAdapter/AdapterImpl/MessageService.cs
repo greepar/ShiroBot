@@ -5,9 +5,8 @@ namespace ShiroBot.DemoAdapter.AdapterImpl;
 
 public class MessageService : IMessageService
 {
-    public async Task<SendPrivateMessageResponse> SendPrivateMessageAsync(long uid, OutgoingSegment[] segments)
+    public async Task<SendPrivateMessageResponse> SendPrivateMessageAsync(SendPrivateMessageRequest request)
     {
-        var request = new SendPrivateMessageRequest(uid, segments);
         var json = JsonConvert.SerializeObject(request);
         Console.WriteLine(json);
         Console.WriteLine("test from adapter.");
@@ -15,12 +14,12 @@ public class MessageService : IMessageService
         return new SendPrivateMessageResponse(123, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
     }
 
-    public Task<SendGroupMessageResponse> SendGroupMessageAsync(long groupId, OutgoingSegment[] segments)
+    public Task<SendGroupMessageResponse> SendGroupMessageAsync(SendGroupMessageRequest request)
     {
         throw new NotImplementedException();
     }
 
-    public Task RecallPrivateMessageAsync(long userId, long messageSeq)
+    public Task RecallPrivateMessageAsync(RecallPrivateMessageRequest request)
     {
         throw new NotImplementedException();
     }

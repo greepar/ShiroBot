@@ -1,6 +1,7 @@
 using ShiroBot.Model.File.Requests;
 using ShiroBot.Model.File.Responses;
 using ShiroBot.Core;
+using ShiroBot.SDK.Abstractions;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Plugin;
 
@@ -10,13 +11,16 @@ public class FileContext(IFileService file) : IFileContext
 {
     public Task<UploadPrivateFileResponse> UploadPrivateFileAsync(UploadPrivateFileRequest request)
     {
-        ConsoleHelper.Info($"[Plugin -> File] Uploading private file: {request.FileName}");
+        BotLog.Info($"[Plugin -> File] Uploading private file: {request.FileName}");
         return file.UploadPrivateFileAsync(request);
     }
+    
+    Task<UploadPrivateFileResponse> UploadPrivateFileAsync(long userId, string fileUri, string fileName)
+        => UploadPrivateFileAsync(new UploadPrivateFileRequest(userId, fileUri, fileName));
 
     public Task<UploadGroupFileResponse> UploadGroupFileAsync(UploadGroupFileRequest request)
     {
-        ConsoleHelper.Info($"[Plugin -> File] Uploading group file to {request.GroupId}: {request.FileName}");
+        BotLog.Info($"[Plugin -> File] Uploading group file to {request.GroupId}: {request.FileName}");
         return file.UploadGroupFileAsync(request);
     }
 
