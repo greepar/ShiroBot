@@ -453,34 +453,71 @@ public static class Program
         Lock pluginLifecycleLock,
         SemaphoreSlim pluginLifecycleSemaphore)
     {
-        eventService.GroupMessageReceived += eventSink.PublishGroupMessageAsync;
+        eventService.GroupMessageReceived += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupMessageAsync(message), "群消息");
         eventService.FriendMessageReceived += message =>
-            HandleFriendMessageAsync(
-                message,
-                eventSink,
-                botContext,
-                pluginRoot,
-                routePolicy,
-                loadedPlugins,
-                pluginLifecycleLock,
-                pluginLifecycleSemaphore);
-        eventService.MessageRecall += eventSink.PublishMessageRecallAsync;
-        eventService.FriendRequest += eventSink.PublishFriendRequestAsync;
-        eventService.GroupJoinRequest += eventSink.PublishGroupJoinRequestAsync;
-        eventService.GroupInvitedJoinRequest += eventSink.PublishGroupInvitedJoinRequestAsync;
-        eventService.GroupInvitation += eventSink.PublishGroupInvitationAsync;
-        eventService.FriendNudge += eventSink.PublishFriendNudgeAsync;
-        eventService.FriendFileUpload += eventSink.PublishFriendFileUploadAsync;
-        eventService.GroupAdminChange += eventSink.PublishGroupAdminChangeAsync;
-        eventService.GroupEssenceMessageChange += eventSink.PublishGroupEssenceMessageChangeAsync;
-        eventService.GroupMemberIncrease += eventSink.PublishGroupMemberIncreaseAsync;
-        eventService.GroupMemberDecrease += eventSink.PublishGroupMemberDecreaseAsync;
-        eventService.GroupNameChange += eventSink.PublishGroupNameChangeAsync;
-        eventService.GroupMessageReaction += eventSink.PublishGroupMessageReactionAsync;
-        eventService.GroupMute += eventSink.PublishGroupMuteAsync;
-        eventService.GroupWholeMute += eventSink.PublishGroupWholeMuteAsync;
-        eventService.GroupNudge += eventSink.PublishGroupNudgeAsync;
-        eventService.GroupFileUpload += eventSink.PublishGroupFileUploadAsync;
+            DispatchAdapterEventInBackground(
+                () => HandleFriendMessageAsync(
+                    message,
+                    eventSink,
+                    botContext,
+                    pluginRoot,
+                    routePolicy,
+                    loadedPlugins,
+                    pluginLifecycleLock,
+                    pluginLifecycleSemaphore),
+                "好友消息");
+        eventService.MessageRecall += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishMessageRecallAsync(message), "消息撤回");
+        eventService.FriendRequest += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishFriendRequestAsync(message), "好友请求");
+        eventService.GroupJoinRequest += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupJoinRequestAsync(message), "入群请求");
+        eventService.GroupInvitedJoinRequest += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupInvitedJoinRequestAsync(message), "群成员邀请他人入群请求");
+        eventService.GroupInvitation += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupInvitationAsync(message), "他人邀请自身入群");
+        eventService.FriendNudge += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishFriendNudgeAsync(message), "好友戳一戳");
+        eventService.FriendFileUpload += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishFriendFileUploadAsync(message), "好友文件上传");
+        eventService.GroupAdminChange += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupAdminChangeAsync(message), "群管理员变更");
+        eventService.GroupEssenceMessageChange += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupEssenceMessageChangeAsync(message), "群精华消息变更");
+        eventService.GroupMemberIncrease += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupMemberIncreaseAsync(message), "群成员增加");
+        eventService.GroupMemberDecrease += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupMemberDecreaseAsync(message), "群成员减少");
+        eventService.GroupNameChange += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupNameChangeAsync(message), "群名称变更");
+        eventService.GroupMessageReaction += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupMessageReactionAsync(message), "群消息表情回应");
+        eventService.GroupMute += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupMuteAsync(message), "群禁言");
+        eventService.GroupWholeMute += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupWholeMuteAsync(message), "群全体禁言");
+        eventService.GroupNudge += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupNudgeAsync(message), "群戳一戳");
+        eventService.GroupFileUpload += message =>
+            DispatchAdapterEventInBackground(() => eventSink.PublishGroupFileUploadAsync(message), "群文件上传");
+    }
+
+    private static Task DispatchAdapterEventInBackground(Func<Task> handler, string eventName)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await handler();
+            }
+            catch (Exception ex)
+            {
+                CH.Error($"适配器事件后台分发失败: {eventName} - {ex.Message}");
+            }
+        });
+
+        return Task.CompletedTask;
     }
 
     private static async Task HandleFriendMessageAsync(
