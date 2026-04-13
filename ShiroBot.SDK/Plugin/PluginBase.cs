@@ -103,8 +103,8 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     Task IBotEventSubscriber.OnGroupFileUploadAsync(GroupFileUploadEvent e) => OnGroupFileUploadAsync(e);
     public IReadOnlyList<MessageRouteDescriptor> GetGroupMessageRoutes() => GroupCommands.Routes;
     public IReadOnlyList<MessageRouteDescriptor> GetFriendMessageRoutes() => FriendCommands.Routes;
-    public bool RequiresGroupMessageBroadcast() => Overrides(GetType(), nameof(OnGroupMessageAsync));
-    public bool RequiresFriendMessageBroadcast() => Overrides(GetType(), nameof(OnFriendMessageAsync));
+    public bool RequiresGroupMessageBroadcast() => Overrides<GroupIncomingMessage>(GetType(), nameof(OnGroupMessageAsync));
+    public bool RequiresFriendMessageBroadcast() => Overrides<FriendIncomingMessage>(GetType(), nameof(OnFriendMessageAsync));
 
     public BotEventSubscriptions GetEffectiveSubscriptions()
     {
@@ -130,97 +130,97 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         var subscriptions = BotEventSubscriptions.None;
         var runtimeType = GetType();
 
-        if (Overrides(runtimeType, nameof(OnGroupMessageAsync)))
+        if (Overrides<GroupIncomingMessage>(runtimeType, nameof(OnGroupMessageAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupMessage;
         }
 
-        if (Overrides(runtimeType, nameof(OnFriendMessageAsync)))
+        if (Overrides<FriendIncomingMessage>(runtimeType, nameof(OnFriendMessageAsync)))
         {
             subscriptions |= BotEventSubscriptions.FriendMessage;
         }
 
-        if (Overrides(runtimeType, nameof(OnMessageRecallAsync)))
+        if (Overrides<MessageRecallEvent>(runtimeType, nameof(OnMessageRecallAsync)))
         {
             subscriptions |= BotEventSubscriptions.MessageRecall;
         }
 
-        if (Overrides(runtimeType, nameof(OnFriendRequestAsync)))
+        if (Overrides<FriendRequestEvent>(runtimeType, nameof(OnFriendRequestAsync)))
         {
             subscriptions |= BotEventSubscriptions.FriendRequest;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupJoinRequestAsync)))
+        if (Overrides<GroupJoinRequestEvent>(runtimeType, nameof(OnGroupJoinRequestAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupJoinRequest;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupInvitedJoinRequestAsync)))
+        if (Overrides<GroupInvitedJoinRequestEvent>(runtimeType, nameof(OnGroupInvitedJoinRequestAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupInvitedJoinRequest;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupInvitationAsync)))
+        if (Overrides<GroupInvitationEvent>(runtimeType, nameof(OnGroupInvitationAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupInvitation;
         }
 
-        if (Overrides(runtimeType, nameof(OnFriendNudgeAsync)))
+        if (Overrides<FriendNudgeEvent>(runtimeType, nameof(OnFriendNudgeAsync)))
         {
             subscriptions |= BotEventSubscriptions.FriendNudge;
         }
 
-        if (Overrides(runtimeType, nameof(OnFriendFileUploadAsync)))
+        if (Overrides<FriendFileUploadEvent>(runtimeType, nameof(OnFriendFileUploadAsync)))
         {
             subscriptions |= BotEventSubscriptions.FriendFileUpload;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupAdminChangeAsync)))
+        if (Overrides<GroupAdminChangeEvent>(runtimeType, nameof(OnGroupAdminChangeAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupAdminChange;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupEssenceMessageChangeAsync)))
+        if (Overrides<GroupEssenceMessageChangeEvent>(runtimeType, nameof(OnGroupEssenceMessageChangeAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupEssenceMessageChange;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupMemberIncreaseAsync)))
+        if (Overrides<GroupMemberIncreaseEvent>(runtimeType, nameof(OnGroupMemberIncreaseAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupMemberIncrease;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupMemberDecreaseAsync)))
+        if (Overrides<GroupMemberDecreaseEvent>(runtimeType, nameof(OnGroupMemberDecreaseAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupMemberDecrease;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupNameChangeAsync)))
+        if (Overrides<GroupNameChangeEvent>(runtimeType, nameof(OnGroupNameChangeAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupNameChange;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupMessageReactionAsync)))
+        if (Overrides<GroupMessageReactionEvent>(runtimeType, nameof(OnGroupMessageReactionAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupMessageReaction;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupMuteAsync)))
+        if (Overrides<GroupMuteEvent>(runtimeType, nameof(OnGroupMuteAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupMute;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupWholeMuteAsync)))
+        if (Overrides<GroupWholeMuteEvent>(runtimeType, nameof(OnGroupWholeMuteAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupWholeMute;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupNudgeAsync)))
+        if (Overrides<GroupNudgeEvent>(runtimeType, nameof(OnGroupNudgeAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupNudge;
         }
 
-        if (Overrides(runtimeType, nameof(OnGroupFileUploadAsync)))
+        if (Overrides<GroupFileUploadEvent>(runtimeType, nameof(OnGroupFileUploadAsync)))
         {
             subscriptions |= BotEventSubscriptions.GroupFileUpload;
         }
@@ -228,9 +228,15 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         return subscriptions;
     }
 
-    private static bool Overrides(Type runtimeType, string methodName)
+    private static bool Overrides<TEvent>(Type runtimeType, string methodName)
     {
-        var method = runtimeType.GetMethod(methodName, BindingFlags.Instance | BindingFlags.NonPublic);
-        return method is not null && method.GetBaseDefinition().DeclaringType != typeof(PluginBase);
+        var method = runtimeType.GetMethod(
+            methodName,
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            types: [typeof(TEvent)],
+            modifiers: null);
+
+        return method is not null && method.DeclaringType != method.GetBaseDefinition().DeclaringType;
     }
 }
