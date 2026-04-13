@@ -647,50 +647,62 @@ public static class Program
         LoadedPluginHandle pluginHandle,
         SemaphoreSlim pluginUnloadSemaphore)
     {
+        PluginUnloadResult? unloadResult = null;
         await pluginUnloadSemaphore.WaitAsync();
         try
         {
             CH.Info($"开始热卸载插件: {pluginHandle.Name}");
-            var result = await pluginHandle.UnloadAsync();
+            unloadResult = await pluginHandle.UnloadAsync();
 
-            if (result.Error is not null)
+            if (unloadResult.Error is not null)
             {
-                CH.Error($"插件卸载失败: {result.Name} - {result.Error.Message}");
+                CH.Error($"插件卸载失败: {unloadResult.Name} - {unloadResult.Error.Message}");
                 return;
             }
 
-            CH.Info($"插件逻辑已卸载，正在后台验证程序集释放: {result.Name}");
-            await Task.Delay(300);
-
-            var assemblyUnloaded = DllLoader<IBotPlugin>.WaitForUnload(result.AssemblyLoadContextWeakReference);
-            if (!assemblyUnloaded)
-            {
-                var aliveObjects = new List<string>();
-                if (result.PluginWeakReference?.IsAlive == true)
-                {
-                    aliveObjects.Add("plugin");
-                }
-
-                if (result.ContextWeakReference?.IsAlive == true)
-                {
-                    aliveObjects.Add("plugin-context");
-                }
-
-                if (aliveObjects.Count > 0)
-                {
-                    CH.Warning($"热卸载诊断: {result.Name} 存活对象: {string.Join(", ", aliveObjects)}");
-                }
-
-                CH.Warning($"插件逻辑已卸载，但程序集仍有残留引用: {result.Name} ({result.AssemblyPath})");
-                return;
-            }
-
-            CH.Success($"插件热卸载成功: {result.Name}");
+            CH.Info($"插件逻辑已卸载，正在后台验证程序集释放: {unloadResult.Name}");
         }
         finally
         {
             pluginUnloadSemaphore.Release();
         }
+
+        if (unloadResult.Error is null)
+        {
+            _ = Task.Run(() => VerifyPluginUnloadAsync(unloadResult));
+        }
+    }
+
+    private static async Task VerifyPluginUnloadAsync(PluginUnloadResult result)
+    {
+        // Let the unload call stack unwind before forcing collections, otherwise the async state machine
+        // that awaited OnUnload may temporarily keep the plugin instance alive.
+        await Task.Delay(300);
+
+        var assemblyUnloaded = DllLoader<IBotPlugin>.WaitForUnload(result.AssemblyLoadContextWeakReference);
+        if (!assemblyUnloaded)
+        {
+            var aliveObjects = new List<string>();
+            if (result.PluginWeakReference?.IsAlive == true)
+            {
+                aliveObjects.Add("plugin");
+            }
+
+            if (result.ContextWeakReference?.IsAlive == true)
+            {
+                aliveObjects.Add("plugin-context");
+            }
+
+            if (aliveObjects.Count > 0)
+            {
+                CH.Warning($"热卸载诊断: {result.Name} 存活对象: {string.Join(", ", aliveObjects)}");
+            }
+
+            CH.Warning($"插件逻辑已卸载，但程序集仍有残留引用: {result.Name} ({result.AssemblyPath})");
+            return;
+        }
+
+        CH.Success($"插件热卸载成功: {result.Name}");
     }
 
     private static Task ScheduleLoadPluginByName(
