@@ -266,29 +266,27 @@ public static class ConsoleHelper
         }
 
         var input = InputBuffer.ToString().TrimStart();
-        if (!input.StartsWith('/'))
+        if (input.Length == 0)
         {
             _inlineCompletionSuffix = string.Empty;
             return;
         }
 
-        var query = input[1..];
+        var query = input.ToLowerInvariant();
         ConsoleCommandOption? match;
 
         if (query.Length == 0)
         {
             match = completions.FirstOrDefault(command =>
-                        string.Equals(command.Name, "/help", StringComparison.OrdinalIgnoreCase)) ??
+                        string.Equals(command.Name, "help", StringComparison.OrdinalIgnoreCase)) ??
                     completions
-                        .Where(command => command.Name.StartsWith("/", StringComparison.Ordinal))
                         .OrderBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
                         .FirstOrDefault();
         }
         else
         {
             match = completions
-                .Where(command => command.Name.StartsWith("/", StringComparison.Ordinal))
-                .Where(command => command.Name[1..].StartsWith(query, StringComparison.OrdinalIgnoreCase))
+                .Where(command => command.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(command => command.Name, StringComparer.OrdinalIgnoreCase)
                 .FirstOrDefault();
         }

@@ -17,16 +17,16 @@ public static class Program
 {
     private static readonly IReadOnlyList<CH.ConsoleCommandOption> ConsoleCommands =
     [
-        new("/help", "显示帮助信息"),
-        new("/plugins", "显示已加载插件"),
-        new("/plugin-load", "热加载指定插件"),
-        new("/plugin-unload", "热卸载指定插件"),
-        new("/path", "打开当前程序目录"),
-        new("/log", "切换日志输出"),
-        new("/clear", "清除控制台"),
-        new("/unload", "卸载并退出"),
-        new("/exit", "退出程序"),
-        new("/quit", "退出程序")
+        new("help", "显示帮助信息"),
+        new("plugins", "显示已加载插件"),
+        new("plugin-load", "热加载指定插件"),
+        new("plugin-unload", "热卸载指定插件"),
+        new("path", "打开当前程序目录"),
+        new("log", "切换日志输出"),
+        new("clear", "清除控制台"),
+        new("unload", "卸载并退出"),
+        new("exit", "退出程序"),
+        new("quit", "退出程序")
     ];
 
     public static async Task Main(string[] args)
@@ -294,11 +294,10 @@ public static class Program
             }
 
             if (CH.IsEnabled ||
-                input.StartsWith("log", StringComparison.CurrentCultureIgnoreCase) ||
-                input.StartsWith("/log", StringComparison.CurrentCultureIgnoreCase))
+                input.StartsWith("log", StringComparison.CurrentCultureIgnoreCase))
             {
                 var splitInput = input.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-                switch (splitInput.FirstOrDefault()?.TrimStart('/').ToLowerInvariant())
+                switch (splitInput.FirstOrDefault()?.ToLowerInvariant())
                 {
                     case "unload":
                     case "exit":
@@ -314,7 +313,7 @@ public static class Program
                     case "plugin-load":
                         if (splitInput.Length < 2)
                         {
-                            CH.Warning("用法: /plugin-load <插件名|dll路径>");
+                            CH.Warning("用法: plugin-load <插件名|dll路径>");
                             break;
                         }
 
@@ -323,7 +322,7 @@ public static class Program
                     case "plugin-unload":
                         if (splitInput.Length < 2)
                         {
-                            CH.Warning("用法: /plugin-unload <插件名>");
+                            CH.Warning("用法: plugin-unload <插件名>");
                             break;
                         }
 
@@ -381,8 +380,8 @@ public static class Program
 
         foreach (var pluginName in loadedPluginNames.OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
         {
-            completions.Add(new CH.ConsoleCommandOption($"/plugin-unload {pluginName}", $"热卸载插件 {pluginName}"));
-            completions.Add(new CH.ConsoleCommandOption($"/plugin-load {pluginName}", $"热加载插件 {pluginName}"));
+            completions.Add(new CH.ConsoleCommandOption($"plugin-unload {pluginName}", $"热卸载插件 {pluginName}"));
+            completions.Add(new CH.ConsoleCommandOption($"plugin-load {pluginName}", $"热加载插件 {pluginName}"));
         }
 
         return completions;
@@ -526,7 +525,7 @@ public static class Program
         }
 
         var input = message.GetPlainText().Trim();
-        if (string.IsNullOrWhiteSpace(input) || !input.StartsWith('/'))
+        if (string.IsNullOrWhiteSpace(input))
         {
             return false;
         }
@@ -537,7 +536,7 @@ public static class Program
             return false;
         }
 
-        switch (splitInput[0].TrimStart('/').ToLowerInvariant())
+        switch (splitInput[0].ToLowerInvariant())
         {
             case "help":
             {
@@ -574,7 +573,7 @@ public static class Program
             {
                 if (splitInput.Length < 2)
                 {
-                    await botContext.Message.ReplyAsync(message, "用法: /plugin-load <插件名|dll路径>");
+                    await botContext.Message.ReplyAsync(message, "用法: plugin-load <插件名|dll路径>");
                     return true;
                 }
 
@@ -594,7 +593,7 @@ public static class Program
             {
                 if (splitInput.Length < 2)
                 {
-                    await botContext.Message.ReplyAsync(message, "用法: /plugin-unload <插件名>");
+                    await botContext.Message.ReplyAsync(message, "用法: plugin-unload <插件名>");
                     return true;
                 }
 
