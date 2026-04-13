@@ -653,7 +653,6 @@ public static class Program
         {
             CH.Info($"开始热卸载插件: {pluginHandle.Name}");
             var result = await pluginHandle.UnloadAsync();
-            pluginHandle = null!;
 
             if (result.Error is not null)
             {
@@ -781,8 +780,14 @@ public static class Program
         DllLoader<IBotPlugin>? loader = null;
         try
         {
-            var actualDllPath = dll;
-            if (IsRootLevelPluginAssembly(pluginRoot, dll))
+            var actualDllPath = Path.GetFullPath(dll);
+            
+            var isRootLevelPluginAssembly = string.Equals(
+                Path.GetFullPath(Path.GetDirectoryName(dll) ?? pluginRoot).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(pluginRoot).TrimEnd(Path.DirectorySeparatorChar),
+                StringComparison.OrdinalIgnoreCase);
+            
+            if (isRootLevelPluginAssembly)
             {
                 var pluginName = ProbePluginName(dll);
                 actualDllPath = RelocateRootPluginAssembly(pluginRoot, dll, pluginName);
@@ -914,15 +919,6 @@ public static class Program
         }
     }
 
-    private static bool IsRootLevelPluginAssembly(string pluginRoot, string dllPath)
-    {
-        var parentDir = Path.GetDirectoryName(dllPath) ?? pluginRoot;
-        return string.Equals(
-            Path.GetFullPath(parentDir).TrimEnd(Path.DirectorySeparatorChar),
-            Path.GetFullPath(pluginRoot).TrimEnd(Path.DirectorySeparatorChar),
-            StringComparison.OrdinalIgnoreCase);
-    }
-
     private static string RelocateRootPluginAssembly(string pluginRoot, string dllPath, string pluginName)
     {
         var pluginDirectory = Path.Combine(pluginRoot, pluginName);
@@ -935,9 +931,7 @@ public static class Program
             Path.GetDirectoryName(dllPath) ?? pluginRoot,
             Path.GetFileNameWithoutExtension(dllPath));
         var targetBasePath = Path.Combine(pluginDirectory, pluginName);
-
-        CopyPluginArtifact(sourceBasePath + ".pdb", targetBasePath + ".pdb", deleteSource: true);
-        CopyPluginArtifact(sourceBasePath + ".deps.json", targetBasePath + ".deps.json", deleteSource: true);
+        
         CopyPluginArtifact(sourceBasePath + ".runtimeconfig.json", targetBasePath + ".runtimeconfig.json", deleteSource: true);
         CopyPluginArtifact(sourceBasePath + ".toml", Path.Combine(pluginDirectory, "config.toml"), deleteSource: true);
 
@@ -961,9 +955,36 @@ public static class Program
         Directory.CreateDirectory(Path.GetDirectoryName(normalizedTarget)!);
         ExecuteFileOperationWithRetry(() => File.Copy(normalizedSource, normalizedTarget, overwrite: true));
 
-        if (deleteSource)
+        if (!deleteSource) return;
+        if (!File.Exists(normalizedSource))
         {
-            TryDeleteFile(normalizedSource);
+            return;
+        }
+
+        const int maxAttempts = 5;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            try
+            {
+                File.Delete(normalizedSource);
+                return;
+            }
+            catch (IOException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(100 * attempt);
+            }
+            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
+            {
+                Thread.Sleep(100 * attempt);
+            }
+            catch (IOException)
+            {
+                return;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return;
+            }
         }
     }
 
@@ -1022,40 +1043,7 @@ public static class Program
         }
         
     }
-
-    private static void TryDeleteFile(string filePath)
-    {
-        if (!File.Exists(filePath))
-        {
-            return;
-        }
-
-        const int maxAttempts = 5;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                File.Delete(filePath);
-                return;
-            }
-            catch (IOException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (IOException)
-            {
-                return;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return;
-            }
-        }
-    }
+    
 
     private static string ResolveAdapterPath(string adapterRoot, string? protocol)
     {

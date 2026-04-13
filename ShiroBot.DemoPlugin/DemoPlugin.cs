@@ -22,7 +22,7 @@ public sealed class DemoPlugin : PluginBase
         {
             foreach (var id in Context.OwnerList)
             {
-                await Context.Message.SendPrivateMessageAsync(id, "ShiroBot已启动.！");
+                await Context.Message.SendPrivateMessageAsync(id, "ShiroBot已启动！");
             }
         }
         FriendCommands.MapExact("#help", HandleFriendHelpAsync);
@@ -30,9 +30,8 @@ public sealed class DemoPlugin : PluginBase
         FriendCommands.MapPrefix("#echo", HandleFriendEchoAsync);
         FriendCommands.MapPrefix("#server", async message =>
         {
-            await Context.File.DeleteGroupFolderAsync(622603336, "/");
+            await Context.Message.ReplyAsync(message, $"当前服务器时间: {DateTime.Now}");
             BotLog.Error("这是一个错误日志示例");
-            await Context.Message.ReplyAsync(message, "服务器信息: ShiroBot Demo Server v1.0");
         });
         GroupCommands.Map("#help", HandleGroupHelpAsync);
         GroupCommands.Map("#ping", HandleGroupPingAsync);
@@ -56,7 +55,8 @@ public sealed class DemoPlugin : PluginBase
 
     private Task HandleFriendEchoAsync(FriendIncomingMessage message)
     {
-        var content = ExtractEchoContent(message.GetPlainText());
+        var text = message.GetPlainText();
+        var content = text.Length <= "#echo".Length ? string.Empty : text["#echo".Length..].TrimStart();
         return Context.Message.ReplyAsync(message, $"你说了: {content}");
     }
 
@@ -68,13 +68,8 @@ public sealed class DemoPlugin : PluginBase
 
     private Task HandleGroupEchoAsync(GroupIncomingMessage message)
     {
-        var content = ExtractEchoContent(message.GetPlainText());
+        var text = message.GetPlainText();
+        var content = text.Length <= "#echo".Length ? string.Empty : text["#echo".Length..].TrimStart();
         return Context.Message.ReplyAsync(message, $"你说了: {content}");
-    }
-
-    private static string ExtractEchoContent(string text)
-    {
-        var trimmed = text.Trim();
-        return trimmed.Length <= "#echo".Length ? string.Empty : trimmed["#echo".Length..].TrimStart();
     }
 }

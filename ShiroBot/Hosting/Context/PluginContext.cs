@@ -33,6 +33,6 @@ internal sealed class PluginContext : IBotContext, IDisposable
 
     public void Dispose()
     {
-        Config = new NoopConfigContext();
+        Config = null!;
     }
 }
