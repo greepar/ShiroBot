@@ -14,6 +14,13 @@ public enum MessageRouteMatchType
 
 public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
 {
+    private static readonly MethodInfo CreateEventDispatcherMethod =
+        typeof(PluginBase).GetMethod(nameof(CreateEventDispatcher), BindingFlags.Static | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException($"Failed to locate {nameof(CreateEventDispatcher)}.");
+
+    private static readonly IReadOnlyDictionary<Type, Func<PluginBase, Event, Task>> EventDispatchers =
+        CreateEventDispatchers();
+
     protected IBotContext Context { get; private set; } = null!;
     protected CommandRouter<GroupIncomingMessage> GroupCommands { get; } = new();
     protected CommandRouter<FriendIncomingMessage> FriendCommands { get; } = new();
@@ -49,7 +56,6 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
             await GroupCommands.DispatchAsync(message.GetPlainText().Trim(), message);
         }
     }
-
     protected virtual async Task OnFriendMessageAsync(FriendIncomingMessage message)
     {
         if (await BeforeDispatchFriendCommandAsync(message))
@@ -82,25 +88,10 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     protected virtual Task OnGroupNudgeAsync(GroupNudgeEvent e) => Task.CompletedTask;
     protected virtual Task OnGroupFileUploadAsync(GroupFileUploadEvent e) => Task.CompletedTask;
 
-    Task IBotEventSubscriber.OnGroupMessageAsync(GroupIncomingMessage message) => OnGroupMessageAsync(message);
-    Task IBotEventSubscriber.OnFriendMessageAsync(FriendIncomingMessage message) => OnFriendMessageAsync(message);
-    Task IBotEventSubscriber.OnMessageRecallAsync(MessageRecallEvent e) => OnMessageRecallAsync(e);
-    Task IBotEventSubscriber.OnFriendRequestAsync(FriendRequestEvent e) => OnFriendRequestAsync(e);
-    Task IBotEventSubscriber.OnGroupJoinRequestAsync(GroupJoinRequestEvent e) => OnGroupJoinRequestAsync(e);
-    Task IBotEventSubscriber.OnGroupInvitedJoinRequestAsync(GroupInvitedJoinRequestEvent e) => OnGroupInvitedJoinRequestAsync(e);
-    Task IBotEventSubscriber.OnGroupInvitationAsync(GroupInvitationEvent e) => OnGroupInvitationAsync(e);
-    Task IBotEventSubscriber.OnFriendNudgeAsync(FriendNudgeEvent e) => OnFriendNudgeAsync(e);
-    Task IBotEventSubscriber.OnFriendFileUploadAsync(FriendFileUploadEvent e) => OnFriendFileUploadAsync(e);
-    Task IBotEventSubscriber.OnGroupAdminChangeAsync(GroupAdminChangeEvent e) => OnGroupAdminChangeAsync(e);
-    Task IBotEventSubscriber.OnGroupEssenceMessageChangeAsync(GroupEssenceMessageChangeEvent e) => OnGroupEssenceMessageChangeAsync(e);
-    Task IBotEventSubscriber.OnGroupMemberIncreaseAsync(GroupMemberIncreaseEvent e) => OnGroupMemberIncreaseAsync(e);
-    Task IBotEventSubscriber.OnGroupMemberDecreaseAsync(GroupMemberDecreaseEvent e) => OnGroupMemberDecreaseAsync(e);
-    Task IBotEventSubscriber.OnGroupNameChangeAsync(GroupNameChangeEvent e) => OnGroupNameChangeAsync(e);
-    Task IBotEventSubscriber.OnGroupMessageReactionAsync(GroupMessageReactionEvent e) => OnGroupMessageReactionAsync(e);
-    Task IBotEventSubscriber.OnGroupMuteAsync(GroupMuteEvent e) => OnGroupMuteAsync(e);
-    Task IBotEventSubscriber.OnGroupWholeMuteAsync(GroupWholeMuteEvent e) => OnGroupWholeMuteAsync(e);
-    Task IBotEventSubscriber.OnGroupNudgeAsync(GroupNudgeEvent e) => OnGroupNudgeAsync(e);
-    Task IBotEventSubscriber.OnGroupFileUploadAsync(GroupFileUploadEvent e) => OnGroupFileUploadAsync(e);
+    Task IBotEventSubscriber.OnEventAsync(Event e) =>
+        EventDispatchers.TryGetValue(e.GetType(), out var dispatcher)
+            ? dispatcher(this, e)
+            : Task.CompletedTask;
     public IReadOnlyList<MessageRouteDescriptor> GetGroupMessageRoutes() => GroupCommands.Routes;
     public IReadOnlyList<MessageRouteDescriptor> GetFriendMessageRoutes() => FriendCommands.Routes;
     public bool RequiresGroupMessageBroadcast() => Overrides<GroupIncomingMessage>(GetType(), nameof(OnGroupMessageAsync));
@@ -238,5 +229,43 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
             modifiers: null);
 
         return method is not null && method.DeclaringType != method.GetBaseDefinition().DeclaringType;
+    }
+
+    private static IReadOnlyDictionary<Type, Func<PluginBase, Event, Task>> CreateEventDispatchers()
+    {
+        var dispatchers = new Dictionary<Type, Func<PluginBase, Event, Task>>();
+
+        foreach (var method in typeof(PluginBase).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic))
+        {
+            if (!method.Name.StartsWith("On", StringComparison.Ordinal) ||
+                !method.Name.EndsWith("Async", StringComparison.Ordinal) ||
+                method.ReturnType != typeof(Task))
+            {
+                continue;
+            }
+
+            var parameters = method.GetParameters();
+            if (parameters.Length != 1 || !typeof(Event).IsAssignableFrom(parameters[0].ParameterType))
+            {
+                continue;
+            }
+
+            var eventType = parameters[0].ParameterType;
+            dispatchers[eventType] = (Func<PluginBase, Event, Task>)CreateEventDispatcherMethod
+                .MakeGenericMethod(eventType)
+                .Invoke(null, [method])!;
+        }
+
+        return dispatchers;
+    }
+
+    private static Func<PluginBase, Event, Task> CreateEventDispatcher<TEvent>(MethodInfo method)
+        where TEvent : Event
+    {
+        var handler = (Func<PluginBase, TEvent, Task>)Delegate.CreateDelegate(
+            typeof(Func<PluginBase, TEvent, Task>),
+            method);
+
+        return (plugin, e) => handler(plugin, (TEvent)e);
     }
 }

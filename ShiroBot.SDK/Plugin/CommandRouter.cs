@@ -40,13 +40,8 @@ public sealed class CommandRouter<TMessage>(StringComparison comparison = String
 
     public async Task<bool> DispatchAsync(string text, TMessage message)
     {
-        foreach (var route in _routes)
+        foreach (var route in _routes.Where(route => Matches(route.Descriptor, text)))
         {
-            if (!Matches(route.Descriptor, text))
-            {
-                continue;
-            }
-
             await route.Handler(message);
             return true;
         }
