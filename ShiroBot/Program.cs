@@ -6,8 +6,8 @@ using ShiroBot.Core;
 using ShiroBot.Hosting;
 using ShiroBot.Hosting.Context;
 using ShiroBot.Model.Common;
-using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Abstractions;
+using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 using CH = ShiroBot.Core.ConsoleHelper;
@@ -19,18 +19,18 @@ public static class Program
     private static readonly MethodInfo CreateAdapterEventBridgeHandlerMethod =
         typeof(Program).GetMethod(nameof(CreateAdapterEventBridgeHandler), BindingFlags.NonPublic | BindingFlags.Static)
         ?? throw new InvalidOperationException($"Failed to locate {nameof(CreateAdapterEventBridgeHandler)}.");
+
     private static readonly MethodInfo PublishAdapterEventAsyncMethod =
         typeof(Program).GetMethod(nameof(PublishAdapterEventAsync), BindingFlags.NonPublic | BindingFlags.Static)
         ?? throw new InvalidOperationException($"Failed to locate {nameof(PublishAdapterEventAsync)}.");
 
-    private static string BasePath => AppContext.BaseDirectory;
-    private static BotContext Context { get; set; } = null!;
+    private static string _pluginRootPath = Path.Combine(BasePath, "plugins");
     private static readonly Lock PluginLifecycleLock = new();
     private static readonly SemaphoreSlim PluginUnloadSemaphore = new(1, 1);
     private static List<LoadedPluginHandle> _loadedPlugins = new();
     private static readonly List<Task> PluginBackgroundTasks = [];
     private static bool _isShuttingDown;
-    
+
     private static readonly IReadOnlyList<CH.ConsoleCommandOption> ConsoleCommands =
     [
         new("help", "显示帮助信息"),
@@ -45,6 +45,10 @@ public static class Program
         new("quit", "退出程序")
     ];
 
+    private static string BasePath => AppContext.BaseDirectory;
+
+    private static BotContext Context { get; set; } = null!;
+
     public static async Task Main(string[] args)
     {
         BotLog.SetDefault(new ConsoleLogger());
@@ -53,7 +57,7 @@ public static class Program
         {
             Description = "指定配置文件路径"
         };
-        
+
         var adapterOption = new Option<string?>("--adapter")
         {
             Description = "指定适配器 DLL 路径"
@@ -80,7 +84,7 @@ public static class Program
         var parserResult = rootCommand.Parse(args);
 
         CH.Info("ShiroBot 启动中...");
-        
+
         lock (PluginLifecycleLock)
         {
             _loadedPlugins = [];
@@ -102,38 +106,39 @@ public static class Program
                     BotLog.Error("指定的配置文件不存在: " + configuredCoreConfigPath);
                     return;
                 }
+
                 coreConfigPath = configuredCoreConfigPath;
             }
             else
             {
                 BotLog.Info("加载核心配置文件: " + coreConfigPath);
             }
+
             //load coreConfig
             var coreConfigManager = new ConfigManager(coreConfigPath);
             var coreConfig = await coreConfigManager.LoadCoreConfig();
-            
+
             //set coreConfig to global context
             CH.IsEnabled = coreConfig.EnableLog;
             var groupRoutePolicy = coreConfig.PluginRoutes;
-            
+
             //load adapter : from config
             var adapterRoot = Path.Combine(AppContext.BaseDirectory, "adapters");
-            if (!Directory.Exists(adapterRoot) )
+            if (!Directory.Exists(adapterRoot))
             {
                 BotLog.Info("适配器目录不存在，创建目录: " + adapterRoot);
                 Directory.CreateDirectory(adapterRoot);
             }
+
             var adapterName = coreConfig.Protocol.EndsWith("dll", StringComparison.OrdinalIgnoreCase)
                 ? coreConfig.Protocol[..^4]
                 : coreConfig.Protocol;
-            var adapterPath = Path.Combine(BasePath,"adapters",$"{adapterName}.dll");
+            var adapterPath = Path.Combine(BasePath, "adapters", $"{adapterName}.dll");
             //load adapter: from config : check if adapters in adapters folder
             if (!File.Exists(adapterPath) &&
-                File.Exists(Path.Combine(BasePath, "adapters", adapterName,$"{adapterName}.dll")))
-            {
-                adapterPath = Path.Combine(BasePath, "adapters", adapterName,$"{adapterName}.dll"); 
-            }
-            
+                File.Exists(Path.Combine(BasePath, "adapters", adapterName, $"{adapterName}.dll")))
+                adapterPath = Path.Combine(BasePath, "adapters", adapterName, $"{adapterName}.dll");
+
             //load adapter: use command line adapter path if specified and exists
             var commandAdapterPath = parserResult.GetValue(adapterOption);
             if (!string.IsNullOrWhiteSpace(commandAdapterPath))
@@ -141,7 +146,7 @@ public static class Program
                 BotLog.Info("检测到命令行适配器路径，使用指定的适配器文件: " + commandAdapterPath);
                 adapterPath = commandAdapterPath;
             }
-       
+
             //load adapter: final fallback
             if (!File.Exists(adapterPath))
             {
@@ -149,29 +154,22 @@ public static class Program
                 var fallbackDll = Directory.EnumerateFiles(Path.Combine(BasePath, "adapters"),
                     "*.dll", SearchOption.AllDirectories).FirstOrDefault();
                 if (fallbackDll is not null)
-                {
                     adapterPath = fallbackDll;
-                }
                 else
-                {
                     fallbackDll = Directory
                         .EnumerateDirectories(Path.Combine(BasePath, "adapters"))
-                        .SelectMany(folder => Directory.EnumerateFiles(folder, 
+                        .SelectMany(folder => Directory.EnumerateFiles(folder,
                             "*.dll", SearchOption.TopDirectoryOnly))
                         .FirstOrDefault();
-                }
                 BotLog.Warning(fallbackDll is not null
                     ? $"未配置适配器，自动选择适配器: {fallbackDll}"
                     : "未找到任何适配器文件，请确认 adapters 目录下存在适配器 DLL 文件。");
             }
-            
+
             if (!File.Exists(adapterPath))
             {
                 CH.Warning("请确认 adapters 目录下存在对应的适配器文件，或在 config.toml 中配置 protocol...");
-                if (CanReadInteractiveKey())
-                {
-                    Console.ReadKey();
-                }
+                if (CanReadInteractiveKey()) Console.ReadKey();
                 return;
             }
 
@@ -181,7 +179,7 @@ public static class Program
             var adapterConfigPath = ResolveAdapterConfigPath(adapterRoot, adapterPath);
             adapter.Config = ConfigContext.ForAdapter(adapterConfigPath);
             adapter.Logger = new ConsoleLogger($"[Adapter:{adapter.Name}]");
-            
+
             var adapterMetadata = adapter.Metadata;
             CH.Log($"适配器信息: {adapterMetadata.Name} v{adapterMetadata.Version}");
 
@@ -189,44 +187,38 @@ public static class Program
             {
                 await adapter.StartAsync();
             }
+
             CH.Success("加载适配器成功: " + adapter.Name);
-            
+
             Context = new BotContext(adapter, coreConfig.OwnerList, coreConfig.AdminList);
             var hostEventDispatcher = new HostEventDispatcher(PluginLifecycleLock);
-            
-            //get plugin folder
-            var pluginRoot = Path.Combine(AppContext.BaseDirectory, "plugins");
-            
+
             var commandPluginDirectory = parserResult.GetValue(pluginOption);
             if (!string.IsNullOrWhiteSpace(commandPluginDirectory))
             {
                 BotLog.Info("检测到指定插件目录: " + commandPluginDirectory);
                 if (!Directory.Exists(commandPluginDirectory))
-                {
-                    BotLog.Info("指定插件目录不存在，回退到默认目录: " + pluginRoot);
-                }
+                    BotLog.Info("指定插件目录不存在，回退到默认目录: " + _pluginRootPath);
                 else
-                {
-                    pluginRoot = commandPluginDirectory;
-                }
+                    _pluginRootPath = commandPluginDirectory;
             }
-            if (!Directory.Exists(pluginRoot))
+
+            if (!Directory.Exists(_pluginRootPath))
             {
-                BotLog.Info("插件目录不存在，创建目录: " + pluginRoot);
-                Directory.CreateDirectory(pluginRoot);
+                BotLog.Info("插件目录不存在，创建目录: " + _pluginRootPath);
+                Directory.CreateDirectory(_pluginRootPath);
             }
 
             BridgeAdapterEvents(
                 adapter.Event,
                 hostEventDispatcher,
-                pluginRoot,
+                _pluginRootPath,
                 groupRoutePolicy);
 
             CH.Info("开始加载插件...");
 
             await LoadPluginsAsync(
-                EnumeratePluginEntryAssemblies(pluginRoot).ToList(),
-                pluginRoot,
+                EnumeratePluginEntryAssemblies(_pluginRootPath).ToList(),
                 hostEventDispatcher,
                 groupRoutePolicy);
 
@@ -246,32 +238,24 @@ public static class Program
                 {
                     var reasons = new List<string>();
 
-                    if (!hasConsole)
-                    {
-                        reasons.Add("检测到非交互终端");
-                    }
+                    if (!hasConsole) reasons.Add("检测到非交互终端");
 
-                    if (configuredConsoleOption)
-                    {
-                        reasons.Add("命令行参数 --no-console 已启用");
-                    }
+                    if (configuredConsoleOption) reasons.Add("命令行参数 --no-console 已启用");
 
-                    if (coreConfig.DisableConsoleInput)
-                    {
-                        reasons.Add("配置项 disable_console_input = true");
-                    }
+                    if (coreConfig.DisableConsoleInput) reasons.Add("配置项 disable_console_input = true");
 
                     CH.Info($"已禁用控制台命令输入: {string.Join("，", reasons)}");
                     break;
                 }
                 case true:
                 {
-                    var exitRequested = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    var exitRequested =
+                        new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     _ = Task.Run(() => RunConsoleCommandLoop(
                         exitRequested,
                         GetLoadedPluginNames,
                         pluginName => ScheduleLoadPluginByName(
-                            pluginRoot,
+                            _pluginRootPath,
                             hostEventDispatcher,
                             groupRoutePolicy,
                             pluginName),
@@ -282,16 +266,14 @@ public static class Program
                     return;
                 }
             }
+
             await Task.Delay(Timeout.Infinite);
         }
         catch (Exception ex)
         {
             CH.Error("程序启动失败: " + ex.Message);
             CH.Warning("按任意键退出...");
-            if (CanReadInteractiveKey())
-            {
-                Console.ReadKey();
-            }
+            if (CanReadInteractiveKey()) Console.ReadKey();
         }
         finally
         {
@@ -300,16 +282,10 @@ public static class Program
             foreach (var pluginHandle in Enumerable.Reverse(GetLoadedPluginSnapshot()))
             {
                 var result = await pluginHandle.UnloadAsync();
-                if (result.Error is not null)
-                {
-                    CH.Error($"插件卸载失败: {result.Name} - {result.Error.Message}");
-                }
+                if (result.Error is not null) CH.Error($"插件卸载失败: {result.Name} - {result.Error.Message}");
 
                 var assemblyUnloaded = DllLoader<IBotPlugin>.WaitForUnload(result.AssemblyLoadContextWeakReference);
-                if (!assemblyUnloaded)
-                {
-                    CH.Warning($"插件程序集未完全卸载，可能仍有引用残留: {result.Name} ({result.AssemblyPath})");
-                }
+                if (!assemblyUnloaded) CH.Warning($"插件程序集未完全卸载，可能仍有引用残留: {result.Name} ({result.AssemblyPath})");
             }
         }
     }
@@ -335,7 +311,9 @@ public static class Program
             !string.Equals(normalizedParent, normalizedAdapterRoot, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(folderName, fileName, StringComparison.OrdinalIgnoreCase);
 
-        return !isFolderBasedAdapter ? Path.ChangeExtension(adapterPath, ".toml") : Path.Combine(normalizedParent, "config.toml");
+        return !isFolderBasedAdapter
+            ? Path.ChangeExtension(adapterPath, ".toml")
+            : Path.Combine(normalizedParent, "config.toml");
     }
 
     private static void RunConsoleCommandLoop(
@@ -347,10 +325,7 @@ public static class Program
         while (true)
         {
             var input = CH.ReadPrompt("> ", BuildConsoleCompletions(getLoadedPluginNames()));
-            if (string.IsNullOrWhiteSpace(input))
-            {
-                continue;
-            }
+            if (string.IsNullOrWhiteSpace(input)) continue;
 
             if (CH.IsEnabled ||
                 input.StartsWith("log", StringComparison.CurrentCultureIgnoreCase))
@@ -397,11 +372,9 @@ public static class Program
                             .AppendLine(new string('-', 24));
 
                         foreach (var command in orderedCommands)
-                        {
                             helpText.Append("  ")
                                 .Append(command.Name.PadRight(nameWidth))
                                 .AppendLine(command.Description);
-                        }
 
                         CH.Info(helpText.ToString().TrimEnd());
                         break;
@@ -433,14 +406,16 @@ public static class Program
         }
     }
 
-    private static IReadOnlyList<CH.ConsoleCommandOption> BuildConsoleCompletions(IReadOnlyList<string> loadedPluginNames)
+    private static IReadOnlyList<CH.ConsoleCommandOption> BuildConsoleCompletions(
+        IReadOnlyList<string> loadedPluginNames)
     {
-        var completions = new List<CH.ConsoleCommandOption>(ConsoleCommands);
+        var completions = new List<ConsoleHelper.ConsoleCommandOption>(ConsoleCommands);
 
         foreach (var pluginName in loadedPluginNames.OrderBy(name => name, StringComparer.OrdinalIgnoreCase))
         {
-            completions.Add(new CH.ConsoleCommandOption($"unload-plugin {pluginName}", $"热卸载插件 {pluginName}"));
-            completions.Add(new CH.ConsoleCommandOption($"load-plugin {pluginName}", $"热加载插件 {pluginName}"));
+            completions.Add(
+                new ConsoleHelper.ConsoleCommandOption($"unload-plugin {pluginName}", $"热卸载插件 {pluginName}"));
+            completions.Add(new ConsoleHelper.ConsoleCommandOption($"load-plugin {pluginName}", $"热加载插件 {pluginName}"));
         }
 
         return completions;
@@ -461,18 +436,21 @@ public static class Program
             .ToList();
 
         foreach (var normalizedPath in rootLevelDlls.Select(Path.GetFullPath).Where(yieldedPaths.Add))
-        {
             yield return normalizedPath;
-        }
 
         var pluginDirectories = Directory.EnumerateDirectories(pluginRoot)
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        foreach (var normalizedPath in from directory in pluginDirectories let directoryName = new DirectoryInfo(directory).Name select Path.Combine(directory, $"{directoryName}.dll") into entryDll where File.Exists(entryDll) && !sharedAssemblies.Contains(Path.GetFileName(entryDll)) select Path.GetFullPath(entryDll) into normalizedPath where yieldedPaths.Add(normalizedPath) select normalizedPath)
-        {
-            yield return normalizedPath;
-        }
+        foreach (var normalizedPath in from directory in pluginDirectories
+                 let directoryName = new DirectoryInfo(directory).Name
+                 select Path.Combine(directory, $"{directoryName}.dll")
+                 into entryDll
+                 where File.Exists(entryDll) && !sharedAssemblies.Contains(Path.GetFileName(entryDll))
+                 select Path.GetFullPath(entryDll)
+                 into normalizedPath
+                 where yieldedPaths.Add(normalizedPath)
+                 select normalizedPath) yield return normalizedPath;
     }
 
     private static List<string> GetLoadedPluginNames()
@@ -506,10 +484,7 @@ public static class Program
     private static async Task AwaitPluginBackgroundTasksAsync()
     {
         var tasks = BeginShutdownAndGetBackgroundTasks();
-        if (tasks.Length == 0)
-        {
-            return;
-        }
+        if (tasks.Length == 0) return;
 
         try
         {
@@ -526,10 +501,7 @@ public static class Program
         Task? task;
         lock (PluginLifecycleLock)
         {
-            if (_isShuttingDown)
-            {
-                return null;
-            }
+            if (_isShuttingDown) return null;
 
             task = Task.Run(taskFactory);
             PluginBackgroundTasks.Add(task);
@@ -580,7 +552,6 @@ public static class Program
         var eventName = GetAdapterEventDisplayName(eventInfo.Name, payloadType);
 
         if (payloadType == typeof(FriendIncomingMessage))
-        {
             return CreateAdapterEventBridgeHandler<FriendIncomingMessage>(
                 message => HandleFriendMessageAsync(
                     message,
@@ -588,13 +559,10 @@ public static class Program
                     pluginRoot,
                     routePolicy),
                 eventName);
-        }
 
         if (!typeof(Event).IsAssignableFrom(payloadType))
-        {
             throw new InvalidOperationException(
                 $"Adapter event '{eventInfo.Name}' payload '{payloadType.Name}' does not implement '{nameof(Event)}'.");
-        }
 
         var factory = CreateAdapterEventBridgeHandlerMethod.MakeGenericMethod(payloadType);
         return (Delegate)factory.Invoke(null, [CreateEventPublisher(eventSink, payloadType), eventName])!;
@@ -604,22 +572,22 @@ public static class Program
     {
         var invokeMethod = eventInfo.EventHandlerType?.GetMethod("Invoke");
         if (invokeMethod is null)
-        {
-            throw new InvalidOperationException($"Adapter event '{eventInfo.Name}' does not expose an invokable handler type.");
-        }
+            throw new InvalidOperationException(
+                $"Adapter event '{eventInfo.Name}' does not expose an invokable handler type.");
 
         var parameters = invokeMethod.GetParameters();
         if (invokeMethod.ReturnType != typeof(Task) || parameters.Length != 1)
-        {
             throw new InvalidOperationException(
                 $"Adapter event '{eventInfo.Name}' must use a handler shaped like Func<TEvent, Task>.");
-        }
 
         return parameters[0].ParameterType;
     }
 
-    private static Func<TEvent, Task> CreateAdapterEventBridgeHandler<TEvent>(Func<TEvent, Task> dispatcher, string eventName) =>
-        message => DispatchAdapterEventInBackground(() => dispatcher(message), eventName);
+    private static Func<TEvent, Task> CreateAdapterEventBridgeHandler<TEvent>(Func<TEvent, Task> dispatcher,
+        string eventName)
+    {
+        return message => DispatchAdapterEventInBackground(() => dispatcher(message), eventName);
+    }
 
     private static object CreateEventPublisher(HostEventDispatcher eventSink, Type payloadType)
     {
@@ -630,20 +598,16 @@ public static class Program
     }
 
     private static Task PublishAdapterEventAsync<TEvent>(HostEventDispatcher eventSink, TEvent message)
-        where TEvent : Event =>
-        eventSink.PublishAsync(message);
+        where TEvent : Event
+    {
+        return eventSink.PublishAsync(message);
+    }
 
     private static string GetAdapterEventDisplayName(string eventName, Type payloadType)
     {
-        if (payloadType == typeof(GroupIncomingMessage))
-        {
-            return "群消息";
-        }
+        if (payloadType == typeof(GroupIncomingMessage)) return "群消息";
 
-        if (payloadType == typeof(FriendIncomingMessage))
-        {
-            return "好友消息";
-        }
+        if (payloadType == typeof(FriendIncomingMessage)) return "好友消息";
 
         return payloadType.Name switch
         {
@@ -696,9 +660,7 @@ public static class Program
                 pluginRoot,
                 routePolicy,
                 eventSink))
-        {
             return;
-        }
         await eventSink.PublishAsync(message);
     }
 
@@ -708,22 +670,13 @@ public static class Program
         PluginRouteConfig routePolicy,
         HostEventDispatcher hostEventDispatcher)
     {
-        if (!Context.OwnerList.Contains(message.SenderId))
-        {
-            return false;
-        }
+        if (!Context.OwnerList.Contains(message.SenderId)) return false;
 
         var input = message.GetPlainText().Trim();
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(input)) return false;
 
         var splitInput = input.Split(null as char[], StringSplitOptions.RemoveEmptyEntries);
-        if (splitInput.Length == 0)
-        {
-            return false;
-        }
+        if (splitInput.Length == 0) return false;
 
         switch (splitInput[0].ToLowerInvariant())
         {
@@ -738,11 +691,9 @@ public static class Program
                     .AppendLine(new string('-', 24));
 
                 foreach (var command in orderedCommands)
-                {
                     helpText.Append("  ")
                         .Append(command.Name.PadRight(nameWidth))
                         .AppendLine(command.Description);
-                }
 
                 await Context.Message.ReplyAsync(message, helpText.ToString().TrimEnd());
                 return true;
@@ -752,10 +703,9 @@ public static class Program
                 var pluginNames = GetLoadedPluginNames();
                 await Context.Message.ReplyAsync(
                     message,
-                    
-                        pluginNames.Count == 0
-                            ? "当前没有已加载插件。"
-                            : "已加载插件: " + string.Join(", ", pluginNames));
+                    pluginNames.Count == 0
+                        ? "当前没有已加载插件。"
+                        : "已加载插件: " + string.Join(", ", pluginNames));
                 return true;
             }
             case "load-plugin":
@@ -826,11 +776,8 @@ public static class Program
         }
 
         CH.Info($"已加入热卸载队列: {pluginHandle.Name}");
-        if (TryQueuePluginBackgroundTask(
-                () => ProcessPluginUnloadAsync(pluginHandle)) is null)
-        {
+        if (TryQueuePluginBackgroundTask(() => ProcessPluginUnloadAsync(pluginHandle)) is null)
             CH.Warning($"程序正在退出，取消热卸载任务: {pluginHandle.Name}");
-        }
 
         return Task.CompletedTask;
     }
@@ -859,43 +806,33 @@ public static class Program
         }
 
         if (unloadResult.Error is null)
-        {
             if (TryQueuePluginBackgroundTask(async () =>
-            {
-                // Let the unload call stack unwind before forcing collections, otherwise the async state machine
-                // that awaited OnUnload may temporarily keep the plugin instance alive.
-                await Task.Delay(300);
-
-                var assemblyUnloaded = DllLoader<IBotPlugin>.WaitForUnload(unloadResult.AssemblyLoadContextWeakReference);
-                if (!assemblyUnloaded)
                 {
-                    var aliveObjects = new List<string>();
-                    if (unloadResult.PluginWeakReference?.IsAlive == true)
+                    // Let the unload call stack unwind before forcing collections, otherwise the async state machine
+                    // that awaited OnUnload may temporarily keep the plugin instance alive.
+                    await Task.Delay(300);
+
+                    var assemblyUnloaded =
+                        DllLoader<IBotPlugin>.WaitForUnload(unloadResult.AssemblyLoadContextWeakReference);
+                    if (!assemblyUnloaded)
                     {
-                        aliveObjects.Add("plugin");
+                        var aliveObjects = new List<string>();
+                        if (unloadResult.PluginWeakReference?.IsAlive == true) aliveObjects.Add("plugin");
+
+                        if (unloadResult.ContextWeakReference?.IsAlive == true) aliveObjects.Add("plugin-context");
+
+                        if (aliveObjects.Count > 0)
+                            CH.Warning($"热卸载诊断: {unloadResult.Name} 存活对象: {string.Join(", ", aliveObjects)}");
+
+                        CH.Warning($"插件逻辑已卸载，但程序集仍有残留引用: {unloadResult.Name} ({unloadResult.AssemblyPath})");
+                        return;
                     }
 
-                    if (unloadResult.ContextWeakReference?.IsAlive == true)
-                    {
-                        aliveObjects.Add("plugin-context");
-                    }
-
-                    if (aliveObjects.Count > 0)
-                    {
-                        CH.Warning($"热卸载诊断: {unloadResult.Name} 存活对象: {string.Join(", ", aliveObjects)}");
-                    }
-
-                    CH.Warning($"插件逻辑已卸载，但程序集仍有残留引用: {unloadResult.Name} ({unloadResult.AssemblyPath})");
-                    return;
-                }
-
-                CH.Success($"插件热卸载成功: {unloadResult.Name}");
-            }) is null)
-            {
+                    CH.Success($"插件热卸载成功: {unloadResult.Name}");
+                }) is null)
                 CH.Warning($"程序正在退出，跳过热卸载验证任务: {unloadResult.Name}");
-            }
-        }
     }
+
     private static Task ScheduleLoadPluginByName(
         string pluginRoot,
         HostEventDispatcher hostEventDispatcher,
@@ -919,22 +856,17 @@ public static class Program
         }
 
         CH.Info($"已加入热加载队列: {pluginNameOrPath}");
-        if (TryQueuePluginBackgroundTask(
-                () => ProcessPluginLoadAsync(
-                    candidateAssemblies,
-                    pluginRoot,
-                    hostEventDispatcher,
-                    routePolicy)) is null)
-        {
+        if (TryQueuePluginBackgroundTask(() => ProcessPluginLoadAsync(
+                candidateAssemblies,
+                hostEventDispatcher,
+                routePolicy)) is null)
             CH.Warning($"程序正在退出，取消热加载任务: {pluginNameOrPath}");
-        }
 
         return Task.CompletedTask;
     }
 
     private static async Task ProcessPluginLoadAsync(
         IReadOnlyList<string> candidateAssemblies,
-        string pluginRoot,
         HostEventDispatcher hostEventDispatcher,
         PluginRouteConfig routePolicy)
     {
@@ -943,7 +875,6 @@ public static class Program
         {
             await LoadPluginsAsync(
                 candidateAssemblies,
-                pluginRoot,
                 hostEventDispatcher,
                 routePolicy);
         }
@@ -955,19 +886,14 @@ public static class Program
 
     private static async Task LoadPluginsAsync(
         IReadOnlyList<string> pluginDlls,
-        string pluginRoot,
         HostEventDispatcher hostEventDispatcher,
         PluginRouteConfig routePolicy)
     {
-        foreach (var dll in pluginDlls)
-        {
-            await LoadPluginAsync(dll, pluginRoot, hostEventDispatcher, routePolicy);
-        }
+        foreach (var dll in pluginDlls) await LoadPluginAsync(dll, hostEventDispatcher, routePolicy);
     }
 
     private static async Task LoadPluginAsync(
         string dll,
-        string pluginRoot,
         HostEventDispatcher hostEventDispatcher,
         PluginRouteConfig routePolicy)
     {
@@ -975,101 +901,137 @@ public static class Program
         try
         {
             var actualDllPath = Path.GetFullPath(dll);
-            
+
             var isRootLevelPluginAssembly = string.Equals(
-                Path.GetFullPath(Path.GetDirectoryName(dll) ?? pluginRoot).TrimEnd(Path.DirectorySeparatorChar),
-                Path.GetFullPath(pluginRoot).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(Path.GetDirectoryName(dll) ?? _pluginRootPath).TrimEnd(Path.DirectorySeparatorChar),
+                Path.GetFullPath(_pluginRootPath).TrimEnd(Path.DirectorySeparatorChar),
                 StringComparison.OrdinalIgnoreCase);
-            
+
+            IBotPlugin? tempPlugin = null;
             if (isRootLevelPluginAssembly)
             {
-                var pluginInfo = GetPluginInfo(actualDllPath);
-                
                 //getplugininfo
-                var probeDirectory = Path.Combine(Path.GetTempPath(), "ShiroBot", "plugin-probe", Guid.NewGuid().ToString("N"));
-                Directory.CreateDirectory(probeDirectory);
+                BotComponentMetadata? pluginInfo;
+                var tempLoader = new DllLoader<IBotPlugin>();
 
-                var probeDllPath = Path.Combine(probeDirectory, Path.GetFileName(dllPath));
-                File.Copy(dllPath, probeDllPath, overwrite: true);
-
-                DllLoader<IBotPlugin>? loader = null;
                 try
                 {
-                    loader = new DllLoader<IBotPlugin>();
-                    var plugin = loader.Load(probeDllPath);
-                    return plugin.Metadata;
-                }
-                finally
-                {
-                    loader?.Unload();
-                    TryDeleteDirectory(probeDirectory);
-                }
-                //getplugininfo
-                
-                var pluginName = pluginInfo.Name;
-                if (pluginInfo.IsPluginSingleFile is not true)
-                {
-                    
-                }
-                
-                
-                // actualDllPath = RelocateRootPluginAssembly(pluginRoot, dll, pluginName);
-                
-                // var targetDllPath = Path.Combine(pluginDirectory, $"{pluginName}.dll");
-                // CopyPluginArtifact(dllPath, targetDllPath, deleteSource: true);
-                //
-                // var sourceBasePath = Path.Combine(
-                //     Path.GetDirectoryName(dllPath) ?? pluginRoot,
-                //     Path.GetFileNameWithoutExtension(dllPath));
-                //
-                // CopyPluginArtifact(sourceBasePath + ".toml", Path.Combine(pluginDirectory, "config.toml"), deleteSource: true);
-                //
-                // return targetDllPath;
-            }
+                    tempPlugin = tempLoader.Load(actualDllPath);
+                    pluginInfo = tempPlugin.Metadata;
 
-            loader = new DllLoader<IBotPlugin>();
-            var plugin = loader.Load(actualDllPath);
+                    var pluginContext = new PluginContext(
+                        Context,
+                        tempPlugin.Name,
+                        null,
+                        groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
 
-            lock (PluginLifecycleLock)
-            {
-                if (_loadedPlugins.Any(item => string.Equals(item.Name, plugin.Name, StringComparison.OrdinalIgnoreCase)))
+                    var metadata = tempPlugin.Metadata;
+                    CH.Info($"开始加载插件: {metadata.Name} v{metadata.Version} ");
+
+                    using (BotLog.BeginScope(pluginContext.Logger))
+                    {
+                        await tempPlugin.OnLoad(pluginContext);
+                    }
+
+                    var pluginHandle = new LoadedPluginHandle(
+                        tempPlugin,
+                        pluginContext,
+                        tempLoader,
+                        actualDllPath,
+                        groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
+
+                    lock (PluginLifecycleLock)
+                    {
+                        _loadedPlugins.Add(pluginHandle);
+                        hostEventDispatcher.RegisterPlugin(pluginHandle);
+                    }
+
+                    CH.Success($"插件加载成功: {tempPlugin.Name} ({actualDllPath})");
+                }
+                catch (Exception e)
                 {
-                    CH.Warning($"插件名重复，已跳过：{plugin.Name} ({actualDllPath})");
-                    loader.Unload();
+                    BotLog.Error(e.Message);
                     return;
                 }
+
+                // getPluginInfo
+                if (pluginInfo.IsPluginSingleFile is not true)
+                {
+                    try
+                    {
+                        await tempPlugin.OnUnload();
+                    }
+                    catch (Exception e)
+                    {
+                        BotLog.Error($"插件卸载失败: {pluginInfo.Name} - {e.Message}");
+                        throw;
+                    }
+
+                    //move plugin
+                    try
+                    {
+                        var pluginName = pluginInfo.Name;
+                        var targetDllRootPath = Path.Combine(_pluginRootPath, pluginName);
+                        
+                        Directory.CreateDirectory(targetDllRootPath);
+                        File.Copy(actualDllPath, Path.Combine(targetDllRootPath, $"{pluginName}.dll"),true);
+                        File.Delete(actualDllPath);
+                    }
+                    catch (Exception e)
+                    {
+                        BotLog.Error($"插件移动/删除出错: {pluginInfo.Name} - {e.Message}");
+                        throw;
+                    }
+                }
             }
 
-            var pluginDirectory = ResolvePluginDirectory(pluginRoot, actualDllPath, plugin.Name);
-            var pluginContext = new PluginContext(
-                Context,
-                plugin.Name,
-                pluginDirectory,
-                groupId => routePolicy.AllowsGroup(plugin.Name, groupId));
-
-            var metadata = plugin.Metadata;
-            CH.Info($"开始加载插件: {metadata.Name} v{metadata.Version} ");
-
-            using (BotLog.BeginScope(pluginContext.Logger))
+            if (tempPlugin is null)
             {
-                await plugin.OnLoad(pluginContext);
+                loader = new DllLoader<IBotPlugin>();
+                var plugin = loader.Load(actualDllPath);
+
+                lock (PluginLifecycleLock)
+                {
+                    if (_loadedPlugins.Any(item =>
+                            string.Equals(item.Name, plugin.Name, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        CH.Warning($"插件名重复，已跳过：{plugin.Name} ({actualDllPath})");
+                        loader.Unload();
+                        return;
+                    }
+                }
+
+                var pluginDirectory = ResolvePluginDirectory(_pluginRootPath, actualDllPath, plugin.Name);
+                var pluginContext = new PluginContext(
+                    Context,
+                    plugin.Name,
+                    pluginDirectory,
+                    groupId => routePolicy.AllowsGroup(plugin.Name, groupId));
+
+                var metadata = plugin.Metadata;
+                CH.Info($"开始加载插件: {metadata.Name} v{metadata.Version} ");
+
+                using (BotLog.BeginScope(pluginContext.Logger))
+                {
+                    await plugin.OnLoad(pluginContext);
+                }
+
+                var pluginHandle = new LoadedPluginHandle(
+                    plugin,
+                    pluginContext,
+                    loader,
+                    actualDllPath,
+                    groupId => routePolicy.AllowsGroup(plugin.Name, groupId));
+
+                lock (PluginLifecycleLock)
+                {
+                    _loadedPlugins.Add(pluginHandle);
+                    hostEventDispatcher.RegisterPlugin(pluginHandle);
+                }
+
+                CH.Success($"插件加载成功: {plugin.Name} ({actualDllPath})");
+                loader = null;
             }
-
-            var pluginHandle = new LoadedPluginHandle(
-                plugin,
-                pluginContext,
-                loader,
-                actualDllPath,
-                groupId => routePolicy.AllowsGroup(plugin.Name, groupId));
-
-            lock (PluginLifecycleLock)
-            {
-                _loadedPlugins.Add(pluginHandle);
-                hostEventDispatcher.RegisterPlugin(pluginHandle);
-            }
-
-            CH.Success($"插件加载成功: {plugin.Name} ({actualDllPath})");
-            loader = null;
         }
         catch (Exception ex)
         {
@@ -1082,7 +1044,8 @@ public static class Program
     {
         var normalizedInput = pluginNameOrPath.Trim();
 
-        if (Path.HasExtension(normalizedInput) || normalizedInput.Contains(Path.DirectorySeparatorChar) || normalizedInput.Contains(Path.AltDirectorySeparatorChar))
+        if (Path.HasExtension(normalizedInput) || normalizedInput.Contains(Path.DirectorySeparatorChar) ||
+            normalizedInput.Contains(Path.AltDirectorySeparatorChar))
         {
             var fullPath = Path.IsPathRooted(normalizedInput)
                 ? Path.GetFullPath(normalizedInput)
@@ -1092,16 +1055,10 @@ public static class Program
         }
 
         var directDll = Path.Combine(pluginRoot, $"{normalizedInput}.dll");
-        if (File.Exists(directDll))
-        {
-            return [Path.GetFullPath(directDll)];
-        }
+        if (File.Exists(directDll)) return [Path.GetFullPath(directDll)];
 
         var pluginDirectoryDll = Path.Combine(pluginRoot, normalizedInput, $"{normalizedInput}.dll");
-        if (File.Exists(pluginDirectoryDll))
-        {
-            return [Path.GetFullPath(pluginDirectoryDll)];
-        }
+        if (File.Exists(pluginDirectoryDll)) return [Path.GetFullPath(pluginDirectoryDll)];
 
         return EnumeratePluginEntryAssemblies(pluginRoot)
             .Where(path =>
@@ -1121,119 +1078,10 @@ public static class Program
         var normalizedRoot = Path.GetFullPath(pluginRoot).TrimEnd(Path.DirectorySeparatorChar);
         var normalizedParent = Path.GetFullPath(parentDir).TrimEnd(Path.DirectorySeparatorChar);
 
-        if (!string.Equals(normalizedParent, normalizedRoot, StringComparison.OrdinalIgnoreCase))
-        {
-            return parentDir;
-        }
+        if (!string.Equals(normalizedParent, normalizedRoot, StringComparison.OrdinalIgnoreCase)) return parentDir;
 
         var pluginDirectory = Path.Combine(pluginRoot, pluginName);
         Directory.CreateDirectory(pluginDirectory);
         return pluginDirectory;
-    }
-
-    private static void CopyPluginArtifact(string sourcePath, string targetPath, bool deleteSource)
-    {
-        if (!File.Exists(sourcePath))
-        {
-            return;
-        }
-
-        var normalizedSource = Path.GetFullPath(sourcePath);
-        var normalizedTarget = Path.GetFullPath(targetPath);
-        if (string.Equals(normalizedSource, normalizedTarget, StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        Directory.CreateDirectory(Path.GetDirectoryName(normalizedTarget)!);
-        ExecuteFileOperationWithRetry(() => File.Copy(normalizedSource, normalizedTarget, overwrite: true));
-
-        if (!deleteSource) return;
-        if (!File.Exists(normalizedSource))
-        {
-            return;
-        }
-
-        const int maxAttempts = 5;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                File.Delete(normalizedSource);
-                return;
-            }
-            catch (IOException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (IOException)
-            {
-                return;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return;
-            }
-        }
-    }
-
-    private static void ExecuteFileOperationWithRetry(Action action)
-    {
-        const int maxAttempts = 5;
-        for (var attempt = 1; ; attempt++)
-        {
-            try
-            {
-                action();
-                return;
-            }
-            catch (IOException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-        }
-    }
-
-    private static void TryDeleteDirectory(string directoryPath)
-    {
-        if (!Directory.Exists(directoryPath))
-        {
-            return;
-        }
-
-        const int maxAttempts = 5;
-        for (var attempt = 1; attempt <= maxAttempts; attempt++)
-        {
-            try
-            {
-                Directory.Delete(directoryPath, recursive: true);
-                return;
-            }
-            catch (IOException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (UnauthorizedAccessException) when (attempt < maxAttempts)
-            {
-                Thread.Sleep(100 * attempt);
-            }
-            catch (IOException)
-            {
-                return;
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return;
-            }
-        }
-        
     }
 }

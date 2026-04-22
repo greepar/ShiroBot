@@ -62,7 +62,7 @@ public class PluginRouteRuleConfig
 
     private static string NormalizeMode(string? mode)
     {
-        return string.IsNullOrWhiteSpace(mode) ? "whitelist" : mode.ToLowerInvariant();
+        return string.IsNullOrEmpty(mode) ? "whitelist" : mode.ToLowerInvariant();
     }
 }
 

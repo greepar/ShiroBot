@@ -52,10 +52,10 @@
     <Target Name="CopyManagedDebugArtifacts"
             AfterTargets="Build"
             Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAdapter' or '$(Configuration)'=='DebugAll'">
-        <MSBuild Projects="..\ShiroBot.DemoPlugin\ShiroBot.DemoPlugin.csproj"
-                 Targets="CopyPluginToHost"
-                 Properties="Configuration=$(Configuration)"
-                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'" />
+<!--        <MSBuild Projects="..\ShiroBot.DemoPlugin\ShiroBot.DemoPlugin.csproj"-->
+<!--                 Targets="CopyPluginToHost"-->
+<!--                 Properties="Configuration=$(Configuration)"-->
+<!--                 Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugPlugin' or '$(Configuration)'=='DebugAll'" />-->
 
         <MSBuild Projects="..\ShiroBot.DemoAdapter\ShiroBot.DemoAdapter.csproj"
                  Targets="CopyAdapterToHost"
