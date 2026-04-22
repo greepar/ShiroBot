@@ -1,6 +1,4 @@
-using ShiroBot.SDK;
 using ShiroBot.SDK.Config;
-using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 
 namespace ShiroBot.Hosting.Context;
@@ -22,13 +20,14 @@ internal sealed class PluginContext : IBotContext, IDisposable
     public PluginContext(
         BotContext botContext,
         string pluginName,
-        string? pluginDirectory = null,
-        Func<long, bool>? groupRouteFilter = null)
+        string? pluginDirectory,
+        Func<long, bool> groupRouteFilter)
     {
         _botContext = botContext;
         Logger = new ConsoleLogger($"[Plugin:{pluginName}]");
-        Config = ConfigContext.ForPlugin(
-            pluginDirectory ?? Path.Combine(AppContext.BaseDirectory, "plugins", pluginName));
+        Config = string.IsNullOrEmpty(pluginDirectory) ? 
+            ConfigContext.NullConfig()
+            : ConfigContext.ForPlugin(pluginDirectory) ;
     }
 
     public void Dispose()

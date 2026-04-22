@@ -1,4 +1,3 @@
-using ShiroBot.SDK;
 using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 

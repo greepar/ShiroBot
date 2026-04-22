@@ -1,14 +1,16 @@
-﻿namespace ShiroBot.Core;
+﻿using System.Runtime.Loader;
+
+namespace ShiroBot.Core;
 
 public class DllLoader<T>
     where T : class
 {
-    private DllLoadContext? _alc;
+    private AssemblyLoadContext? _alc;
     private WeakReference? _alcWeakReference;
 
     public T Load(string dllPath)
     {
-        _alc = new DllLoadContext(dllPath);
+        _alc = new AssemblyLoadContext(dllPath, isCollectible: true);
         _alcWeakReference = new WeakReference(_alc);
 
         var assembly = _alc.LoadFromAssemblyPath(dllPath);

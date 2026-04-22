@@ -1,22 +1,30 @@
 using ShiroBot.Core;
 using ShiroBot.SDK.Config;
-using ShiroBot.SDK.Plugin;
-using CH = ShiroBot.Core.ConsoleHelper;
-
 namespace ShiroBot.Hosting.Context;
 
 internal sealed class ConfigContext : IConfigContext
 {
     private readonly ConfigManager _configManager = new();
-    private readonly string _configPath;
     private readonly string _displayName;
 
-    public string ConfigPath => _configPath;
+    public string ConfigPath { get; }
 
     private ConfigContext(string configPath, string displayName)
     {
-        _configPath = Path.GetFullPath(configPath);
+        ConfigPath = Path.GetFullPath(configPath);
         _displayName = displayName;
+    }
+
+    private sealed class NullConfigContext : IConfigContext
+    {
+        public string ConfigPath => string.Empty;
+        public T Load<T>() where T : class, new() => new T();
+        public void Save<T>(T config) where T : class { }
+    }
+
+    public static IConfigContext NullConfig()
+    {
+        return new NullConfigContext();
     }
 
     public static IConfigContext ForAdapter(string adapterConfigPath)
@@ -24,52 +32,35 @@ internal sealed class ConfigContext : IConfigContext
         return new ConfigContext(adapterConfigPath, "适配器");
     }
 
-    public static IConfigContext ForPlugin(string pluginDirectory)
+    public static IConfigContext ForPlugin(string pluginConfigPath)
     {
-        return new ConfigContext(Path.Combine(pluginDirectory, "config.toml"), "插件");
+        
+        return new ConfigContext(pluginConfigPath, "插件");
     }
 
     public T Load<T>() where T : class, new()
     {
-        return _configManager.LoadConfig<T>(_configPath, $"{_displayName}") ?? new T();
+        return _configManager.LoadConfig<T>(ConfigPath, $"{_displayName}") ?? new T();
     }
 
     public void Save<T>(T config) where T : class
     {
-        _configManager.SaveConfig(_configPath, config);
+        _configManager.SaveConfig(ConfigPath, config);
     }
 
     public IDisposable Watch<T>(Action<T> onChanged, int debounceMs = 500) where T : class, new()
     {
-        var directory = Path.GetDirectoryName(_configPath)
-                        ?? throw new InvalidOperationException($"无法解析配置文件目录: {_configPath}");
+        var directory = Path.GetDirectoryName(ConfigPath)
+                        ?? throw new InvalidOperationException($"无法解析配置文件目录: {ConfigPath}");
         Directory.CreateDirectory(directory);
 
-        Timer? timer = null;
-        var watcher = new FileSystemWatcher(directory, Path.GetFileName(_configPath))
+        var watcher = new FileSystemWatcher(directory, Path.GetFileName(ConfigPath))
         {
             NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.CreationTime,
             EnableRaisingEvents = true
         };
 
-        void Reload()
-        {
-            try
-            {
-                onChanged(Load<T>());
-            }
-            catch (Exception ex)
-            {
-                ConsoleHelper.Error($"{_displayName}配置热重载失败: {ConfigPath} - {ex.Message}");
-            }
-        }
-
-        timer = new Timer(_ => Reload(), null, Timeout.Infinite, Timeout.Infinite);
-
-        void ScheduleReload(object? _, FileSystemEventArgs __)
-        {
-            timer.Change(Math.Max(50, debounceMs), Timeout.Infinite);
-        }
+        var timer = new Timer(_ => Reload(), null, Timeout.Infinite, Timeout.Infinite);
 
         RenamedEventHandler renamedHandler = (_, _) => timer.Change(Math.Max(50, debounceMs), Timeout.Infinite);
         watcher.Changed += ScheduleReload;
@@ -85,5 +76,22 @@ internal sealed class ConfigContext : IConfigContext
                 watcher.Created -= ScheduleReload;
                 watcher.Renamed -= renamedHandler;
             });
+
+        void ScheduleReload(object? _, FileSystemEventArgs __)
+        {
+            timer.Change(Math.Max(50, debounceMs), Timeout.Infinite);
+        }
+
+        void Reload()
+        {
+            try
+            {
+                onChanged(Load<T>());
+            }
+            catch (Exception ex)
+            {
+                ConsoleHelper.Error($"{_displayName}配置热重载失败: {ConfigPath} - {ex.Message}");
+            }
+        }
     }
 }
