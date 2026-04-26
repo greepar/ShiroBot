@@ -126,31 +126,29 @@ internal sealed class LoadedPluginHandle
             scope = BotLog.BeginScope(new ConsoleLogger($"[Plugin:{name}]"));
             var unloadTask = plugin.OnUnload();
 
-            if (unloadTask.IsCompletedSuccessfully)
-            {
-                scope.Dispose();
-                context?.Dispose();
-                var alcWeakReference = loader?.BeginUnload();
-
-                return Task.FromResult(new PluginUnloadResult(
+            if (!unloadTask.IsCompletedSuccessfully)
+                return AwaitUnloadCoreAsync(
                     name,
                     assemblyPath,
-                    true,
-                    alcWeakReference,
                     pluginWeakReference,
                     contextWeakReference,
-                    null));
-            }
+                    context,
+                    loader,
+                    unloadTask,
+                    scope);
+            scope.Dispose();
+            context?.Dispose();
+            var alcWeakReference = loader?.BeginUnload();
 
-            return AwaitUnloadCoreAsync(
+            return Task.FromResult(new PluginUnloadResult(
                 name,
                 assemblyPath,
+                true,
+                alcWeakReference,
                 pluginWeakReference,
                 contextWeakReference,
-                context,
-                loader,
-                unloadTask,
-                scope);
+                null));
+
         }
         catch (Exception ex)
         {

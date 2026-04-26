@@ -27,7 +27,7 @@ internal sealed class PluginContext : IBotContext, IDisposable
         Logger = new ConsoleLogger($"[Plugin:{pluginName}]");
         Config = string.IsNullOrEmpty(pluginDirectory) ? 
             ConfigContext.NullConfig()
-            : ConfigContext.ForPlugin(pluginDirectory) ;
+            : ConfigContext.ForPlugin(Path.Combine(pluginDirectory, $"config.toml")) ;
     }
 
     public void Dispose()
