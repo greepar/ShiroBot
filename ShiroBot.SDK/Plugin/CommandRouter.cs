@@ -23,10 +23,20 @@ public sealed class CommandRouter<TMessage>(StringComparison comparison = String
 
     public void MapAll(Func<TMessage, Task> handler)
     {
-        AddRoute(MessageRouteMatchType.All, null, handler);
+        MapWhen(_ => true, handler);
     }
 
-    private void AddRoute(MessageRouteMatchType matchType, string? pattern, Func<TMessage, Task> handler)
+    public void MapWhen(Func<TMessage, bool> predicate, Func<TMessage, Task> handler)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        AddRoute(MessageRouteMatchType.All, null, handler, predicate);
+    }
+
+    private void AddRoute(
+        MessageRouteMatchType matchType,
+        string? pattern,
+        Func<TMessage, Task> handler,
+        Func<TMessage, bool>? predicate = null)
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -35,12 +45,12 @@ public sealed class CommandRouter<TMessage>(StringComparison comparison = String
             ArgumentException.ThrowIfNullOrWhiteSpace(pattern);
         }
 
-        _routes.Add(new RouteEntry(new MessageRouteDescriptor(matchType, pattern), handler));
+        _routes.Add(new RouteEntry(new MessageRouteDescriptor(matchType, pattern), handler, predicate));
     }
 
     public async Task<bool> DispatchAsync(string text, TMessage message)
     {
-        foreach (var route in _routes.Where(route => Matches(route.Descriptor, text)))
+        foreach (var route in _routes.Where(route => Matches(route, text, message)))
         {
             await route.Handler(message);
             return true;
@@ -54,16 +64,24 @@ public sealed class CommandRouter<TMessage>(StringComparison comparison = String
         _routes.Clear();
     }
 
-    private bool Matches(MessageRouteDescriptor route, string text)
+    private bool Matches(RouteEntry route, string text, TMessage message)
     {
-        return route.MatchType switch
+        if (route.Predicate is not null && !route.Predicate(message))
+        {
+            return false;
+        }
+
+        return route.Descriptor.MatchType switch
         {
             MessageRouteMatchType.All => true,
-            MessageRouteMatchType.Exact => string.Equals(text, route.Pattern, comparison),
-            MessageRouteMatchType.Prefix => text.StartsWith(route.Pattern!, comparison),
+            MessageRouteMatchType.Exact => string.Equals(text, route.Descriptor.Pattern, comparison),
+            MessageRouteMatchType.Prefix => text.StartsWith(route.Descriptor.Pattern!, comparison),
             _ => false
         };
     }
 
-    private sealed record RouteEntry(MessageRouteDescriptor Descriptor, Func<TMessage, Task> Handler);
+    private sealed record RouteEntry(
+        MessageRouteDescriptor Descriptor,
+        Func<TMessage, Task> Handler,
+        Func<TMessage, bool>? Predicate);
 }

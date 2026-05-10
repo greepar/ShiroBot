@@ -37,6 +37,7 @@ public static class Program
         new("plugins", "显示已加载插件"),
         new("load-plugin", "热加载指定插件"),
         new("unload-plugin", "热卸载指定插件"),
+        new("update", "查看或处理待确认更新"),
         new("path", "打开当前程序目录"),
         new("log", "切换日志输出"),
         new("clear", "清除控制台"),
@@ -191,6 +192,9 @@ public static class Program
             CH.Success("加载适配器成功: " + adapter.Name);
 
             Context = new BotContext(adapter, coreConfig.OwnerList, coreConfig.AdminList);
+            Core.Updater.Initialize(
+                () => Context.OwnerList,
+                (ownerId, content) => Context.Message.SendPrivateMessageAsync(ownerId, content));
             var hostEventDispatcher = new HostEventDispatcher(PluginLifecycleLock);
 
             var commandPluginDirectory = parserResult.GetValue(pluginOption);
@@ -708,6 +712,62 @@ public static class Program
                         : "已加载插件: " + string.Join(", ", pluginNames));
                 return true;
             }
+            case "update":
+            {
+                if (splitInput.Length < 2)
+                {
+                    var pending = Core.Updater.GetPendingUpdates();
+                    await Context.Message.ReplyAsync(
+                        message,
+                        pending.Count == 0
+                            ? "当前没有待确认的更新请求。"
+                            : string.Join("\n", pending.Select(item =>
+                                $"{item.Id} | {item.Target} | {item.Name} {item.CurrentVersion} -> {item.LatestVersion}")));
+                    return true;
+                }
+
+                switch (splitInput[1].ToLowerInvariant())
+                {
+                    case "list":
+                    {
+                        var pending = Core.Updater.GetPendingUpdates();
+                        await Context.Message.ReplyAsync(
+                            message,
+                            pending.Count == 0
+                                ? "当前没有待确认的更新请求。"
+                                : string.Join("\n", pending.Select(item =>
+                                    $"{item.Id} | {item.Target} | {item.Name} {item.CurrentVersion} -> {item.LatestVersion}")));
+                        return true;
+                    }
+                    case "confirm":
+                    {
+                        if (splitInput.Length < 3)
+                        {
+                            await Context.Message.ReplyAsync(message, "用法: update confirm <id>");
+                            return true;
+                        }
+
+                        var ok = await Core.Updater.ConfirmUpdateAsync(splitInput[2]);
+                        await Context.Message.ReplyAsync(message, ok ? "已开始执行更新。" : "未找到该更新请求。");
+                        return true;
+                    }
+                    case "cancel":
+                    {
+                        if (splitInput.Length < 3)
+                        {
+                            await Context.Message.ReplyAsync(message, "用法: update cancel <id>");
+                            return true;
+                        }
+
+                        var ok = Core.Updater.CancelUpdate(splitInput[2]);
+                        await Context.Message.ReplyAsync(message, ok ? "已取消更新请求。" : "未找到该更新请求。");
+                        return true;
+                    }
+                    default:
+                        await Context.Message.ReplyAsync(message, "用法: update [list|confirm|cancel]");
+                        return true;
+                }
+            }
             case "load-plugin":
             {
                 if (splitInput.Length < 2)
@@ -912,76 +972,86 @@ public static class Program
             {
                 //getplugininfo
                 BotComponentMetadata? pluginInfo;
+                string? pluginName;
                 var tempLoader = new DllLoader<IBotPlugin>();
-
+                
                 try
                 {
                     tempPlugin = tempLoader.Load(actualDllPath);
                     pluginInfo = tempPlugin.Metadata;
+                    pluginName = tempPlugin.Name;
 
-                    var pluginContext = new PluginContext(
-                        Context,
-                        tempPlugin.Name,
-                        null,
-                        groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
-
-                    var metadata = tempPlugin.Metadata;
-                    CH.Info($"开始加载插件: {metadata.Name} v{metadata.Version} ");
-
-                    using (BotLog.BeginScope(pluginContext.Logger))
+                    // getPluginInfo
+                    if (pluginInfo.IsPluginSingleFile is true)
                     {
-                        await tempPlugin.OnLoad(pluginContext);
+                        var pluginContext = new PluginContext(
+                            Context,
+                            tempPlugin.Name,
+                            null,
+                            groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
+
+                        var metadata = tempPlugin.Metadata;
+                        CH.Info($"开始加载插件: {metadata.Name} v{metadata.Version} ");
+
+                        using (BotLog.BeginScope(pluginContext.Logger))
+                        {
+                            await tempPlugin.OnLoad(pluginContext);
+                        }
+
+                        var pluginHandle = new LoadedPluginHandle(
+                            tempPlugin,
+                            pluginContext,
+                            tempLoader,
+                            actualDllPath,
+                            groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
+
+                        lock (PluginLifecycleLock)
+                        {
+                            _loadedPlugins.Add(pluginHandle);
+                            hostEventDispatcher.RegisterPlugin(pluginHandle);
+                        }
+
+                        CH.Success($"插件加载成功: {tempPlugin.Name} ({actualDllPath})");
                     }
-
-                    var pluginHandle = new LoadedPluginHandle(
-                        tempPlugin,
-                        pluginContext,
-                        tempLoader,
-                        actualDllPath,
-                        groupId => routePolicy.AllowsGroup(tempPlugin.Name, groupId));
-
-                    lock (PluginLifecycleLock)
+                    else
                     {
-                        _loadedPlugins.Add(pluginHandle);
-                        hostEventDispatcher.RegisterPlugin(pluginHandle);
-                    }
+                        // try
+                        // {
+                        //     await tempPlugin.OnUnload();
+                        //     tempLoader.Unload();
+                        //     tempPlugin = null;
+                        // }
+                        // catch (Exception e)
+                        // {
+                        //     BotLog.Error($"插件卸载失败: {pluginInfo.Name} - {e.Message}");
+                        //     throw;
+                        // }
 
-                    CH.Success($"插件加载成功: {tempPlugin.Name} ({actualDllPath})");
+                        //move plugin
+                        try
+                        {
+                            var targetDllRootPath = Path.Combine(_pluginRootPath, pluginName);
+
+                            Directory.CreateDirectory(targetDllRootPath);
+                            File.Copy(actualDllPath, Path.Combine(targetDllRootPath, $"{pluginName}.dll"), true);
+                            File.Delete(actualDllPath);
+                        }
+                        catch (Exception e)
+                        {
+                            BotLog.Error($"插件移动/删除出错: {pluginInfo.Name} - {e.Message}");
+                            throw;
+                        }
+                        finally
+                        {
+                            tempLoader.Unload();
+                            tempPlugin = null;
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
                     BotLog.Error(e.Message);
                     return;
-                }
-
-                // getPluginInfo
-                if (pluginInfo.IsPluginSingleFile is not true)
-                {
-                    try
-                    {
-                        await tempPlugin.OnUnload();
-                    }
-                    catch (Exception e)
-                    {
-                        BotLog.Error($"插件卸载失败: {pluginInfo.Name} - {e.Message}");
-                        throw;
-                    }
-
-                    //move plugin
-                    try
-                    {
-                        var pluginName = pluginInfo.Name;
-                        var targetDllRootPath = Path.Combine(_pluginRootPath, pluginName);
-                        
-                        Directory.CreateDirectory(targetDllRootPath);
-                        File.Copy(actualDllPath, Path.Combine(targetDllRootPath, $"{pluginName}.dll"),true);
-                        File.Delete(actualDllPath);
-                    }
-                    catch (Exception e)
-                    {
-                        BotLog.Error($"插件移动/删除出错: {pluginInfo.Name} - {e.Message}");
-                        throw;
-                    }
                 }
             }
 
@@ -1001,7 +1071,7 @@ public static class Program
                     }
                 }
 
-                var pluginDirectory = ResolvePluginDirectory(_pluginRootPath, actualDllPath, plugin.Name);
+                var pluginDirectory = Path.Combine(_pluginRootPath, plugin.Name);
                 var pluginContext = new PluginContext(
                     Context,
                     plugin.Name,
@@ -1070,18 +1140,5 @@ public static class Program
             })
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-    }
-
-    private static string ResolvePluginDirectory(string pluginRoot, string dllPath, string pluginName)
-    {
-        var parentDir = Path.GetDirectoryName(dllPath) ?? pluginRoot;
-        var normalizedRoot = Path.GetFullPath(pluginRoot).TrimEnd(Path.DirectorySeparatorChar);
-        var normalizedParent = Path.GetFullPath(parentDir).TrimEnd(Path.DirectorySeparatorChar);
-
-        if (!string.Equals(normalizedParent, normalizedRoot, StringComparison.OrdinalIgnoreCase)) return parentDir;
-
-        var pluginDirectory = Path.Combine(pluginRoot, pluginName);
-        Directory.CreateDirectory(pluginDirectory);
-        return pluginDirectory;
     }
 }

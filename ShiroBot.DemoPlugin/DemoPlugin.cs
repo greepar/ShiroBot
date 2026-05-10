@@ -12,7 +12,8 @@ public sealed class DemoPlugin : PluginBase
     {
         Name = "标准示例插件",
         Version = "1.0.0",
-        Description = "这是一个 ShiroBot 插件开发的标准示例，展示了插件的基本结构和功能。"
+        Description = "这是一个 ShiroBot 插件开发的标准示例，展示了插件的基本结构和功能。",
+        IsPluginSingleFile = false
     };
 
     protected override async Task LoadAsync()
@@ -33,9 +34,19 @@ public sealed class DemoPlugin : PluginBase
             await Context.Message.ReplyAsync(message, $"当前服务器时间: {DateTime.Now}");
             BotLog.Error("这是一个错误日志示例");
         });
-        GroupCommands.Map("#help", HandleGroupHelpAsync);
-        GroupCommands.Map("#ping", HandleGroupPingAsync);
-        GroupCommands.Map("#echo", HandleGroupEchoAsync);
+        GroupCommands.MapExact("#help", HandleGroupHelpAsync);
+        GroupCommands.MapExact("#ping", HandleGroupPingAsync);
+        GroupCommands.MapPrefix("#echo", HandleGroupEchoAsync);
+        GroupCommands.MapMention(HandleGroupMentionAsync);
+        GroupCommands.MapMentionAll(HandleGroupMentionAllAsync);
+        GroupCommands.MapReply(HandleGroupReplyAsync);
+
+        Events.Map<MessageRecallEvent>(HandleMessageRecallAsync);
+        Events.Map<FriendRequestEvent>(HandleFriendRequestAsync);
+        Events.MapWhen<GroupMemberIncreaseEvent>(
+            e => e.GroupId == 123,
+            HandleSpecificGroupMemberIncreaseAsync);
+
         var loginInfo = await Context.System.GetLoginInfoAsync();
         BotLog.Info($"插件上下文已就绪: {loginInfo.Nickname}");
         BotLog.Info("标准示例插件已加载。");
@@ -71,5 +82,37 @@ public sealed class DemoPlugin : PluginBase
         var text = message.GetPlainText();
         var content = text.Length <= "#echo".Length ? string.Empty : text["#echo".Length..].TrimStart();
         return Context.Message.ReplyAsync(message, $"你说了: {content}");
+    }
+
+    private Task HandleGroupMentionAsync(GroupIncomingMessage message) =>
+        Context.Message.ReplyAsync(message, $"你提到了 {message.Segments.OfType<MentionIncomingSegment>().Count()} 个用户。");
+
+    private Task HandleGroupMentionAllAsync(GroupIncomingMessage message) =>
+        Context.Message.ReplyAsync(message, "检测到 @全体成员。");
+
+    private Task HandleGroupReplyAsync(GroupIncomingMessage message)
+    {
+        var reply = message.GetReply();
+        return Context.Message.ReplyAsync(message, reply is null
+            ? "这条消息没有回复段。"
+            : $"你回复了 {reply.SenderId} 的消息: {reply.MessageSeq}");
+    }
+
+    private Task HandleMessageRecallAsync(MessageRecallEvent e)
+    {
+        BotLog.Info($"消息撤回事件: {e.MessageScene} {e.PeerId} #{e.MessageSeq}, sender={e.SenderId}, operator={e.OperatorId}");
+        return Task.CompletedTask;
+    }
+
+    private Task HandleFriendRequestAsync(FriendRequestEvent e)
+    {
+        BotLog.Info($"好友请求事件: {e.InitiatorId} ({e.InitiatorUid}) comment={e.Comment}");
+        return Task.CompletedTask;
+    }
+
+    private Task HandleSpecificGroupMemberIncreaseAsync(GroupMemberIncreaseEvent e)
+    {
+        BotLog.Info($"指定群成员增加事件: group={e.GroupId}, user={e.UserId}");
+        return Task.CompletedTask;
     }
 }

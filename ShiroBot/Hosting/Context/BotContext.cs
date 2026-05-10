@@ -10,6 +10,7 @@ internal sealed class BotContext(IBotAdapter adapter, IReadOnlyList<long> ownerL
     public IGroupContext Group { get; } = new GroupContext(adapter.Group);
     public IMessageContext Message { get; } = new MessageContext(adapter.Message);
     public ISystemContext System { get; } = new SystemContext(adapter.System);
+    public IUpdater Updater { get; } = new UpdaterContext();
     public IReadOnlyList<long> OwnerList { get; } = ownerList;
     public IReadOnlyList<long> AdminList { get; } = adminList;
 }

@@ -61,21 +61,13 @@ public class DllLoader<T>
 
         return !alcWeakReference.IsAlive;
     }
-
-    private bool UnloadAndWait(int maxAttempts = 50, int delayMs = 100)
-    {
-        var alcWeakReference = BeginUnload();
-        var unloaded = WaitForUnload(alcWeakReference, maxAttempts, delayMs);
-        if (unloaded)
-        {
-            _alcWeakReference = null;
-        }
-
-        return unloaded;
-    }
-
+    
+    
+    //Dispose
     public void Unload()
     {
-        _ = UnloadAndWait();
+        _alc?.Unload();
+        _alc = null;
     }
+
 }

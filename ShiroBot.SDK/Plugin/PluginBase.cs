@@ -24,6 +24,7 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     protected IBotContext Context { get; private set; } = null!;
     protected CommandRouter<GroupIncomingMessage> GroupCommands { get; } = new();
     protected CommandRouter<FriendIncomingMessage> FriendCommands { get; } = new();
+    protected EventRouter Events { get; } = new();
     private static BotEventSubscriptions Subscriptions => BotEventSubscriptions.None;
     public virtual string Name => GetType().Name;
     public virtual BotComponentMetadata Metadata => new()
@@ -43,6 +44,7 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         await OnUnloadAsync();
         GroupCommands.Clear();
         FriendCommands.Clear();
+        Events.Clear();
         Context = null!;
     }
 
@@ -70,32 +72,58 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
     protected virtual Task<bool> BeforeDispatchFriendCommandAsync(FriendIncomingMessage message) =>
         Task.FromResult(true);
 
+    [Obsolete("Use Events.Map<MessageRecallEvent>(...) instead.")]
     protected virtual Task OnMessageRecallAsync(MessageRecallEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<FriendRequestEvent>(...) instead.")]
     protected virtual Task OnFriendRequestAsync(FriendRequestEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupJoinRequestEvent>(...) instead.")]
     protected virtual Task OnGroupJoinRequestAsync(GroupJoinRequestEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupInvitedJoinRequestEvent>(...) instead.")]
     protected virtual Task OnGroupInvitedJoinRequestAsync(GroupInvitedJoinRequestEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupInvitationEvent>(...) instead.")]
     protected virtual Task OnGroupInvitationAsync(GroupInvitationEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<FriendNudgeEvent>(...) instead.")]
     protected virtual Task OnFriendNudgeAsync(FriendNudgeEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<FriendFileUploadEvent>(...) instead.")]
     protected virtual Task OnFriendFileUploadAsync(FriendFileUploadEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupAdminChangeEvent>(...) instead.")]
     protected virtual Task OnGroupAdminChangeAsync(GroupAdminChangeEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupEssenceMessageChangeEvent>(...) instead.")]
     protected virtual Task OnGroupEssenceMessageChangeAsync(GroupEssenceMessageChangeEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupMemberIncreaseEvent>(...) instead.")]
     protected virtual Task OnGroupMemberIncreaseAsync(GroupMemberIncreaseEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupMemberDecreaseEvent>(...) instead.")]
     protected virtual Task OnGroupMemberDecreaseAsync(GroupMemberDecreaseEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupNameChangeEvent>(...) instead.")]
     protected virtual Task OnGroupNameChangeAsync(GroupNameChangeEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupMessageReactionEvent>(...) instead.")]
     protected virtual Task OnGroupMessageReactionAsync(GroupMessageReactionEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupMuteEvent>(...) instead.")]
     protected virtual Task OnGroupMuteAsync(GroupMuteEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupWholeMuteEvent>(...) instead.")]
     protected virtual Task OnGroupWholeMuteAsync(GroupWholeMuteEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupNudgeEvent>(...) instead.")]
     protected virtual Task OnGroupNudgeAsync(GroupNudgeEvent e) => Task.CompletedTask;
+    [Obsolete("Use Events.Map<GroupFileUploadEvent>(...) instead.")]
     protected virtual Task OnGroupFileUploadAsync(GroupFileUploadEvent e) => Task.CompletedTask;
 
-    Task IBotEventSubscriber.OnEventAsync(Event e) =>
-        EventDispatchers.TryGetValue(e.GetType(), out var dispatcher)
-            ? dispatcher(this, e)
-            : Task.CompletedTask;
+    async Task IBotEventSubscriber.OnEventAsync(Event e)
+    {
+        if (EventDispatchers.TryGetValue(e.GetType(), out var dispatcher))
+        {
+            await dispatcher(this, e);
+        }
+
+        await Events.DispatchAsync(e);
+    }
     public IReadOnlyList<MessageRouteDescriptor> GetGroupMessageRoutes() => GroupCommands.Routes;
     public IReadOnlyList<MessageRouteDescriptor> GetFriendMessageRoutes() => FriendCommands.Routes;
-    public bool RequiresGroupMessageBroadcast() => Overrides<GroupIncomingMessage>(GetType(), nameof(OnGroupMessageAsync));
-    public bool RequiresFriendMessageBroadcast() => Overrides<FriendIncomingMessage>(GetType(), nameof(OnFriendMessageAsync));
+    public bool RequiresGroupMessageBroadcast() =>
+        Overrides<GroupIncomingMessage>(GetType(), nameof(OnGroupMessageAsync)) ||
+        Events.HasRoute<GroupIncomingMessage>();
+    public bool RequiresFriendMessageBroadcast() =>
+        Overrides<FriendIncomingMessage>(GetType(), nameof(OnFriendMessageAsync)) ||
+        Events.HasRoute<FriendIncomingMessage>();
 
     public BotEventSubscriptions GetEffectiveSubscriptions()
     {
@@ -112,6 +140,19 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         }
 
         subscriptions |= InferOverriddenEventSubscriptions();
+        subscriptions |= InferMappedEventSubscriptions();
+
+        return subscriptions;
+    }
+
+    private BotEventSubscriptions InferMappedEventSubscriptions()
+    {
+        var subscriptions = BotEventSubscriptions.None;
+
+        foreach (var eventType in Events.EventTypes)
+        {
+            subscriptions |= GetSubscriptionForEvent(eventType);
+        }
 
         return subscriptions;
     }
@@ -217,6 +258,20 @@ public abstract class PluginBase : IBotPlugin, IBotEventSubscriber
         }
 
         return subscriptions;
+    }
+
+    private static BotEventSubscriptions GetSubscriptionForEvent(Type eventType)
+    {
+        if (eventType == typeof(GroupIncomingMessage)) return BotEventSubscriptions.GroupMessage;
+        if (eventType == typeof(FriendIncomingMessage)) return BotEventSubscriptions.FriendMessage;
+
+        var name = eventType.Name.EndsWith("Event", StringComparison.Ordinal)
+            ? eventType.Name[..^"Event".Length]
+            : eventType.Name;
+
+        return Enum.TryParse<BotEventSubscriptions>(name, out var subscription)
+            ? subscription
+            : BotEventSubscriptions.None;
     }
 
     private static bool Overrides<TEvent>(Type runtimeType, string methodName)
