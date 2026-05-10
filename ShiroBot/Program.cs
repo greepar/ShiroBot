@@ -37,6 +37,7 @@ public static class Program
         new("plugins", "显示已加载插件"),
         new("load-plugin", "热加载指定插件"),
         new("unload-plugin", "热卸载指定插件"),
+        new("update", "查看或处理待确认更新"),
         new("path", "打开当前程序目录"),
         new("log", "切换日志输出"),
         new("clear", "清除控制台"),
@@ -191,6 +192,9 @@ public static class Program
             CH.Success("加载适配器成功: " + adapter.Name);
 
             Context = new BotContext(adapter, coreConfig.OwnerList, coreConfig.AdminList);
+            Core.Updater.Initialize(
+                () => Context.OwnerList,
+                (ownerId, content) => Context.Message.SendPrivateMessageAsync(ownerId, content));
             var hostEventDispatcher = new HostEventDispatcher(PluginLifecycleLock);
 
             var commandPluginDirectory = parserResult.GetValue(pluginOption);
@@ -707,6 +711,62 @@ public static class Program
                         ? "当前没有已加载插件。"
                         : "已加载插件: " + string.Join(", ", pluginNames));
                 return true;
+            }
+            case "update":
+            {
+                if (splitInput.Length < 2)
+                {
+                    var pending = Core.Updater.GetPendingUpdates();
+                    await Context.Message.ReplyAsync(
+                        message,
+                        pending.Count == 0
+                            ? "当前没有待确认的更新请求。"
+                            : string.Join("\n", pending.Select(item =>
+                                $"{item.Id} | {item.Target} | {item.Name} {item.CurrentVersion} -> {item.LatestVersion}")));
+                    return true;
+                }
+
+                switch (splitInput[1].ToLowerInvariant())
+                {
+                    case "list":
+                    {
+                        var pending = Core.Updater.GetPendingUpdates();
+                        await Context.Message.ReplyAsync(
+                            message,
+                            pending.Count == 0
+                                ? "当前没有待确认的更新请求。"
+                                : string.Join("\n", pending.Select(item =>
+                                    $"{item.Id} | {item.Target} | {item.Name} {item.CurrentVersion} -> {item.LatestVersion}")));
+                        return true;
+                    }
+                    case "confirm":
+                    {
+                        if (splitInput.Length < 3)
+                        {
+                            await Context.Message.ReplyAsync(message, "用法: update confirm <id>");
+                            return true;
+                        }
+
+                        var ok = await Core.Updater.ConfirmUpdateAsync(splitInput[2]);
+                        await Context.Message.ReplyAsync(message, ok ? "已开始执行更新。" : "未找到该更新请求。");
+                        return true;
+                    }
+                    case "cancel":
+                    {
+                        if (splitInput.Length < 3)
+                        {
+                            await Context.Message.ReplyAsync(message, "用法: update cancel <id>");
+                            return true;
+                        }
+
+                        var ok = Core.Updater.CancelUpdate(splitInput[2]);
+                        await Context.Message.ReplyAsync(message, ok ? "已取消更新请求。" : "未找到该更新请求。");
+                        return true;
+                    }
+                    default:
+                        await Context.Message.ReplyAsync(message, "用法: update [list|confirm|cancel]");
+                        return true;
+                }
             }
             case "load-plugin":
             {

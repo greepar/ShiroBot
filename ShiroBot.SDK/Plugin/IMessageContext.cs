@@ -35,7 +35,27 @@ public interface IMessageContext : IMessageService
         GroupIncomingMessage message,
         string text,
         params OutgoingSegment[] additionalSegments) =>
-        SendGroupMessageAsync(message.Group.GroupId, BuildSegments(text, additionalSegments));
+        SendGroupMessageAsync(message.Group.GroupId, additionalSegments);
+    
+    Task<SendPrivateMessageResponse> ReplyAsync(
+        FriendIncomingMessage message,
+        params OutgoingSegment[] segments) =>
+        SendPrivateMessageAsync(message.SenderId, segments);
+
+    Task<SendGroupMessageResponse> ReplyAsync(
+        GroupIncomingMessage message,
+        params OutgoingSegment[] segments) =>
+        SendGroupMessageAsync(message.Group.GroupId, segments);
+    
+    Task<SendPrivateMessageResponse> QuoteReplyAsync(
+        FriendIncomingMessage message,
+        params OutgoingSegment[] segments) =>
+        SendPrivateMessageAsync(message.SenderId, segments.Prepend(new ReplyOutgoingSegment(message.SenderId)).ToArray());
+    
+    Task<SendGroupMessageResponse> QuoteReplyAsync(
+        GroupIncomingMessage message,
+        params OutgoingSegment[] segments) =>
+        SendGroupMessageAsync(message.Group.GroupId, segments.Prepend(new ReplyOutgoingSegment(message.SenderId)).ToArray());
 
     Task RecallPrivateMessageAsync(long userId, long messageSeq) =>
         RecallPrivateMessageAsync(new RecallPrivateMessageRequest(userId, messageSeq));
